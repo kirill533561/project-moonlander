@@ -2,7 +2,7 @@
   "name": "Project Moonlander",
   "short_name": "Moonlander",
   "description": "Gamified personal goals & finance tracker",
-  "start_url": "/dashboard",
+  "start_url": ".",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

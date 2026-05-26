@@ -1,10 +1,9 @@
-const CACHE_NAME = "moonlander-v2";
+const CACHE_NAME = "moonlander-v3";
+const PRECACHE = ["/dashboard", "/finance", "/goals", "/trophies", "/icon-192.png", "/icon-512.png", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(["/dashboard", "/finance", "/goals", "/trophies", "/icon-192.png", "/icon-512.png"])
-    )
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
   );
   self.skipWaiting();
 });
@@ -19,7 +18,19 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Network first, fall back to cache
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful GET requests
+        if (event.request.method === "GET" && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
