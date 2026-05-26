@@ -19,6 +19,8 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useDemoMode } from "@/components/layout/header";
+import { DEMO_COUNTERS, DEMO_COUNTER_VALUES, DEMO_NET_WORTH, DEMO_GOAL_CATEGORIES } from "@/lib/demo-data";
 
 /* ---------- types ---------- */
 
@@ -30,34 +32,10 @@ interface CounterGoal {
   unit: string;
 }
 
-/* ---------- demo data ---------- */
-
-const DEMO_COUNTERS: CounterGoal[] = [
-  { id: "gym", name: "Gym Sessions", monthlyTarget: 15, step: 1, unit: "sessions" },
-  { id: "steps", name: "Steps (avg)", monthlyTarget: 8500, step: 100, unit: "steps" },
-];
-
-const DEMO_COUNTS: Record<string, number> = { gym: 8, steps: 7200 };
-
-const DEMO_NET_WORTH = [
-  { year: "2021", value: 21070 },
-  { year: "2022", value: 27992 },
-  { year: "2023", value: 32766 },
-  { year: "2024", value: 80711 },
-  { year: "2025", value: 86811 },
-];
-
-const DEMO_GOAL_CATS = [
-  { label: "Dreams", achieved: 1, total: 3, color: "text-pixel-purple" },
-  { label: "Economic", achieved: 2, total: 4, color: "text-pixel-gold" },
-  { label: "Wishlist", achieved: 3, total: 5, color: "text-pixel-cyan" },
-  { label: "Personal", achieved: 4, total: 6, color: "text-pixel-green" },
-];
-
 /* ---------- component ---------- */
 
 export default function DashboardPage() {
-  const [demoMode, setDemoMode] = useState(false);
+  const { demoMode } = useDemoMode();
 
   const [counters, setCounters] = useState<CounterGoal[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -67,10 +45,11 @@ export default function DashboardPage() {
   const [newStep, setNewStep] = useState("1");
   const [newUnit, setNewUnit] = useState("times");
 
-  const activeCounters = demoMode ? DEMO_COUNTERS : counters;
-  const activeCounts = demoMode ? DEMO_COUNTS : counts;
+  const demoCountersTyped: CounterGoal[] = DEMO_COUNTERS;
+  const activeCounters = demoMode ? demoCountersTyped : counters;
+  const activeCounts = demoMode ? DEMO_COUNTER_VALUES : counts;
   const activeNetWorth = demoMode ? DEMO_NET_WORTH : [];
-  const activeGoalCats = demoMode ? DEMO_GOAL_CATS : [];
+  const activeGoalCats = demoMode ? DEMO_GOAL_CATEGORIES : [];
 
   const increment = (id: string, step: number) => {
     playCounterClick();
