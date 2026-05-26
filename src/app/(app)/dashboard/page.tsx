@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocalStorage } from "@/lib/use-local-storage";
 import { playCounterClick, playSuccess } from "@/lib/sounds";
 import { getMonthlyBadge, getBadgeGradient } from "@/lib/rewards";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -46,11 +48,62 @@ export default function DashboardPage() {
   const [newStep, setNewStep] = useState("1");
   const [newUnit, setNewUnit] = useState("times");
 
+  // Read finance data from localStorage to build charts
+  const [financeData] = useLocalStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
+  const [financeVars] = useLocalStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
+
+  const realFinanceSummary = useMemo(() => {
+    const yearly: Record<number, { salary: number; expenses: number }> = {};
+    for (const [yearStr, yearData] of Object.entries(financeData)) {
+      const year = Number(yearStr);
+      if (!yearly[year]) yearly[year] = { salary: 0, expenses: 0 };
+      for (const [, monthData] of Object.entries(yearData)) {
+        for (const [varId, fields] of Object.entries(monthData)) {
+          const varDef = financeVars.find((v) => v.id === varId);
+          if (!varDef) continue;
+          if (varDef.type === "income_source") {
+            yearly[year].salary += fields.amount ?? 0;
+          } else if (varDef.type === "expense_category") {
+            yearly[year].expenses += fields.amount ?? 0;
+          }
+        }
+      }
+    }
+    return yearly;
+  }, [financeData, financeVars]);
+
+  const realNetWorth = useMemo(() => {
+    return Object.entries(realFinanceSummary)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .filter(([, v]) => v.salary > 0 || v.expenses > 0)
+      .map(([year, v]) => ({ year, value: Math.round(v.salary - v.expenses) }));
+  }, [realFinanceSummary]);
+
+  const realMonthlyChart = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const yearData = financeData[currentYear];
+    if (!yearData) return [];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months.map((label, i) => {
+      const md = yearData[i] || {};
+      let salary = 0;
+      let expenses = 0;
+      for (const [varId, fields] of Object.entries(md)) {
+        const varDef = financeVars.find((v) => v.id === varId);
+        if (!varDef) continue;
+        if (varDef.type === "income_source") salary += fields.amount ?? 0;
+        else if (varDef.type === "expense_category") expenses += fields.amount ?? 0;
+      }
+      return { month: label, salary: Math.round(salary), expenses: Math.round(expenses), net: Math.round(salary - expenses) };
+    }).filter((m) => m.salary > 0 || m.expenses > 0);
+  }, [financeData, financeVars]);
+
   const demoCountersTyped: CounterGoal[] = DEMO_COUNTERS;
   const activeCounters = demoMode ? demoCountersTyped : counters;
   const activeCounts = demoMode ? DEMO_COUNTER_VALUES : counts;
-  const activeNetWorth = demoMode ? DEMO_NET_WORTH : [];
+  const activeNetWorth = demoMode ? DEMO_NET_WORTH : realNetWorth;
   const activeGoalCats = demoMode ? DEMO_GOAL_CATEGORIES : [];
+  const activeMonthlyChart = demoMode ? [] : realMonthlyChart;
 
   const increment = (id: string, step: number) => {
     playCounterClick();
@@ -229,10 +282,10 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* ===== Net Worth Chart (demo only) ===== */}
+      {/* ===== Yearly Income vs Expenses ===== */}
       {activeNetWorth.length > 0 && (
         <section className="pixel-card p-4">
-          <h3 className="font-pixel text-xs text-pixel-gold mb-4">NET WORTH</h3>
+          <h3 className="font-pixel text-xs text-pixel-gold mb-4">YEARLY NET INCOME</h3>
           <div className="w-full h-48 sm:h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={activeNetWorth}>
@@ -247,11 +300,11 @@ export default function DashboardPage() {
                   axisLine={{ stroke: "#2a2a4a" }}
                   tickLine={false}
                   tickFormatter={(v: number) => v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)}
-                  width={40}
+                  width={45}
                 />
                 <Tooltip
                   contentStyle={{ background: "#0f0f2a", border: "2px solid #ffd700", fontFamily: "VT323, monospace", fontSize: 18, color: "#ffd700" }}
-                  formatter={(value) => [`$${Number(value).toLocaleString()}`, "Net Worth"]}
+                  formatter={(value) => [`€${Number(value).toLocaleString()}`, "Net Income"]}
                   labelStyle={{ color: "#888" }}
                 />
                 <Line type="stepAfter" dataKey="value" stroke="#ffd700" strokeWidth={3}
@@ -259,6 +312,41 @@ export default function DashboardPage() {
                   activeDot={{ r: 7, fill: "#ffd700", stroke: "#fff" }}
                 />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
+
+      {/* ===== Monthly Salary vs Expenses (current year) ===== */}
+      {activeMonthlyChart.length > 0 && (
+        <section className="pixel-card p-4">
+          <h3 className="font-pixel text-xs text-pixel-cyan mb-4">
+            {new Date().getFullYear()} MONTHLY BREAKDOWN
+          </h3>
+          <div className="w-full h-52 sm:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activeMonthlyChart} barGap={2}>
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }}
+                  axisLine={{ stroke: "#2a2a4a" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }}
+                  axisLine={{ stroke: "#2a2a4a" }}
+                  tickLine={false}
+                  tickFormatter={(v: number) => v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)}
+                  width={40}
+                />
+                <Tooltip
+                  contentStyle={{ background: "#0f0f2a", border: "2px solid #2a2a4a", fontFamily: "VT323, monospace", fontSize: 16, color: "#fff" }}
+                  formatter={(value, name) => [`€${Number(value).toLocaleString()}`, String(name)]}
+                  labelStyle={{ color: "#888" }}
+                />
+                <Bar dataKey="salary" fill="#00ff41" name="Salary" />
+                <Bar dataKey="expenses" fill="#ff4444" name="Expenses" />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
