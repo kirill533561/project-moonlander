@@ -113,6 +113,8 @@ export default function GoalsPage() {
   const [newPersName, setNewPersName] = useState("");
   const [newPersType, setNewPersType] = useState<"counter" | "ratio">("counter");
   const [newPersTarget, setNewPersTarget] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   /* --- dream actions --- */
   const toggleDream = useCallback((id: string) => {
@@ -125,6 +127,21 @@ export default function GoalsPage() {
       return updated;
     });
   }, []);
+
+  const startEditing = (id: string, name: string) => {
+    setEditingId(id);
+    setEditingName(name);
+  };
+
+  const saveEditing = () => {
+    if (!editingId || !editingName.trim()) { setEditingId(null); return; }
+    const name = editingName.trim();
+    setDreams((prev) => prev.map((d) => d.id === editingId ? { ...d, name } : d));
+    setEconomic((prev) => prev.map((g) => g.id === editingId ? { ...g, name } : g));
+    setWishlist((prev) => prev.map((w) => w.id === editingId ? { ...w, name } : w));
+    setPersonal((prev) => prev.map((p) => p.id === editingId ? { ...p, name } : p));
+    setEditingId(null);
+  };
 
   const deleteDream = useCallback((id: string) => {
     playDelete();
@@ -382,11 +399,26 @@ export default function GoalsPage() {
                       </span>
                     )}
 
-                    {/* Name */}
+                    {/* Name — tap to edit */}
                     <div className="flex-1 min-w-0">
-                      <p className={`font-pixel-body text-xl truncate ${dream.achieved ? "text-pixel-green" : "text-white"}`}>
-                        {dream.name}
-                      </p>
+                      {editingId === dream.id ? (
+                        <input
+                          autoFocus
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onBlur={saveEditing}
+                          onKeyDown={(e) => e.key === "Enter" && saveEditing()}
+                          className="bg-[#1a1a3a] border-2 border-pixel-purple text-white font-pixel-body text-xl px-2 py-0.5 w-full focus:outline-none"
+                        />
+                      ) : (
+                        <p
+                          onClick={() => startEditing(dream.id, dream.name)}
+                          className={`font-pixel-body text-xl truncate cursor-pointer hover:text-pixel-purple transition-colors ${dream.achieved ? "text-pixel-green" : "text-white"}`}
+                          title="Click to edit"
+                        >
+                          {dream.name}
+                        </p>
+                      )}
                     </div>
 
                     {/* Delete */}
@@ -478,9 +510,16 @@ export default function GoalsPage() {
                 <div key={goal.id} className="pixel-card p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-pixel-body text-xl text-white">
-                        {goal.name}
-                      </p>
+                      {editingId === goal.id ? (
+                        <input autoFocus value={editingName} onChange={(e) => setEditingName(e.target.value)}
+                          onBlur={saveEditing} onKeyDown={(e) => e.key === "Enter" && saveEditing()}
+                          className="bg-[#1a1a3a] border-2 border-pixel-gold text-white font-pixel-body text-xl px-2 py-0.5 w-full focus:outline-none" />
+                      ) : (
+                        <p onClick={() => startEditing(goal.id, goal.name)}
+                          className="font-pixel-body text-xl text-white cursor-pointer hover:text-pixel-gold transition-colors" title="Click to edit">
+                          {goal.name}
+                        </p>
+                      )}
                       <p className="font-pixel-body text-base text-gray-500 mt-1">
                         {goal.targetType === "cumulative" ? "Cumulative" : "End of Year"} target
                       </p>
@@ -600,14 +639,21 @@ export default function GoalsPage() {
             {wishlist.map((item) => (
               <div key={item.id} className="pixel-card p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-pixel-body text-xl text-white">
-                    {item.name}
-                    {item.achievedMonth !== null && (
-                      <span className="text-pixel-green ml-2">
-                        &#10003; {MONTHS[item.achievedMonth]}
-                      </span>
+                  <div className="flex-1 min-w-0">
+                    {editingId === item.id ? (
+                      <input autoFocus value={editingName} onChange={(e) => setEditingName(e.target.value)}
+                        onBlur={saveEditing} onKeyDown={(e) => e.key === "Enter" && saveEditing()}
+                        className="bg-[#1a1a3a] border-2 border-pixel-cyan text-white font-pixel-body text-xl px-2 py-0.5 w-full focus:outline-none" />
+                    ) : (
+                      <p onClick={() => startEditing(item.id, item.name)}
+                        className="font-pixel-body text-xl text-white cursor-pointer hover:text-pixel-cyan transition-colors truncate" title="Click to edit">
+                        {item.name}
+                        {item.achievedMonth !== null && (
+                          <span className="text-pixel-green ml-2">✓ {MONTHS[item.achievedMonth]}</span>
+                        )}
+                      </p>
                     )}
-                  </p>
+                  </div>
                   <button
                     onClick={() => deleteWishItem(item.id)}
                     className="pixel-btn w-9 h-9 flex items-center justify-center text-lg shrink-0 border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
@@ -693,9 +739,16 @@ export default function GoalsPage() {
                 <div key={goal.id} className="pixel-card p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-pixel-body text-xl text-white">
-                        {goal.name}
-                      </p>
+                      {editingId === goal.id ? (
+                        <input autoFocus value={editingName} onChange={(e) => setEditingName(e.target.value)}
+                          onBlur={saveEditing} onKeyDown={(e) => e.key === "Enter" && saveEditing()}
+                          className="bg-[#1a1a3a] border-2 border-pixel-green text-white font-pixel-body text-xl px-2 py-0.5 w-full focus:outline-none" />
+                      ) : (
+                        <p onClick={() => startEditing(goal.id, goal.name)}
+                          className="font-pixel-body text-xl text-white cursor-pointer hover:text-pixel-green transition-colors" title="Click to edit">
+                          {goal.name}
+                        </p>
+                      )}
                       <p className="font-pixel-body text-base text-gray-500">
                         {goal.trackingType === "counter" ? "Counter" : "Ratio"} | Avg: {yearlyAvg}
                       </p>
