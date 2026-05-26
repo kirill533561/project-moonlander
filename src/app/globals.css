@@ -151,7 +151,7 @@
 
 .pixel-btn:hover {
   background: #00ffff;
-  color: #050520;
+  color: #ffffff;
   box-shadow: 2px 2px 0 #00808080;
   transform: translate(2px, 2px);
 }
@@ -169,7 +169,7 @@
 
 .pixel-btn-gold:hover {
   background: #ffd700;
-  color: #050520;
+  color: #ffffff;
 }
 
 .pixel-btn-green {
@@ -180,7 +180,7 @@
 
 .pixel-btn-green:hover {
   background: #00ff41;
-  color: #050520;
+  color: #ffffff;
 }
 
 .pixel-btn-purple {
@@ -191,13 +191,13 @@
 
 .pixel-btn-purple:hover {
   background: #b967ff;
-  color: #050520;
+  color: #ffffff;
 }
 
 /* Active button state (when selected) */
 .pixel-btn-active {
-  color: #050520 !important;
-  font-weight: bold;
+  color: #ffffff !important;
+  text-shadow: 0 0 6px currentColor;
 }
 
 /* 8-bit progress bar */
