@@ -316,88 +316,98 @@
 }
 
 /* 8-bit pixel rocket + astronaut flying toward the moon */
+/* 8-bit pixel rocket + astronaut — bigger, z-index 1 so visible above star field */
 .pixel-rocket {
   position: fixed;
-  top: 12%;
-  right: 18%;
-  width: 5px;
-  height: 5px;
+  top: 8%;
+  right: 16%;
+  width: 7px;
+  height: 7px;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
   image-rendering: pixelated;
-  animation: rocket-drift 8s ease-in-out infinite alternate;
+  animation: rocket-drift 10s ease-in-out infinite alternate;
 }
 
 .pixel-rocket::before {
   content: "";
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
   background: #e0e0e0;
-  /* Rocket body pointing top-right */
   box-shadow:
-    /* Nose cone */
-    10px -15px 0 #ff4444,
-    10px -10px 0 #ff4444,  15px -10px 0 #ff4444,
-    /* Body */
-    5px -5px 0 #e0e0e0,  10px -5px 0 #e0e0e0,  15px -5px 0 #e0e0e0,  20px -5px 0 #e0e0e0,
-    5px 0px 0 #c0c0c0,  10px 0px 0 #e0e0e0,  15px 0px 0 #e0e0e0,  20px 0px 0 #c0c0c0,
-    5px 5px 0 #c0c0c0,  10px 5px 0 #e0e0e0,  15px 5px 0 #e0e0e0,  20px 5px 0 #c0c0c0,
-    /* Window */
-    12px 0px 0 #00ffff,
-    /* Fins */
-    0px 10px 0 #ff4444,  5px 10px 0 #ff4444,
-    25px 10px 0 #ff4444,  20px 10px 0 #ff4444,
-    /* Exhaust flames */
-    10px 10px 0 #ffd700,  15px 10px 0 #ffd700,
-    8px 15px 0 #ff8844,  12px 15px 0 #ffd700,  17px 15px 0 #ff8844,
-    10px 20px 0 #ff444488,  15px 20px 0 #ff444488;
-  animation: exhaust-flicker 0.3s steps(2) infinite alternate;
+    /* Nose cone (red tip) */
+    14px -21px 0 #ff4444,
+    7px -14px 0 #ff4444,  14px -14px 0 #ff6644,  21px -14px 0 #ff4444,
+    /* Upper body */
+    0px -7px 0 #c0c0c0,  7px -7px 0 #e0e0e0,  14px -7px 0 #e0e0e0,  21px -7px 0 #e0e0e0,  28px -7px 0 #c0c0c0,
+    /* Mid body + window */
+    0px 0px 0 #c0c0c0,  7px 0px 0 #e0e0e0,  14px 0px 0 #00ffff,  21px 0px 0 #e0e0e0,  28px 0px 0 #c0c0c0,
+    /* Lower body */
+    0px 7px 0 #aaa,  7px 7px 0 #c0c0c0,  14px 7px 0 #c0c0c0,  21px 7px 0 #c0c0c0,  28px 7px 0 #aaa,
+    /* Fins (red) */
+    -7px 14px 0 #ff4444,  0px 14px 0 #ff4444,
+    28px 14px 0 #ff4444,  35px 14px 0 #ff4444,
+    /* Exhaust nozzle */
+    7px 14px 0 #888,  14px 14px 0 #888,  21px 14px 0 #888,
+    /* Flames (yellow/orange, flickering) */
+    7px 21px 0 #ffd700,  14px 21px 0 #ff8844,  21px 21px 0 #ffd700,
+    10px 28px 0 #ff8844aa,  14px 28px 0 #ffd70088,  18px 28px 0 #ff884488,
+    14px 35px 0 #ff444466;
+  animation: exhaust-flicker 0.25s steps(2) infinite alternate;
 }
 
-/* Astronaut floating next to rocket */
+/* Astronaut floating beside the rocket */
 .pixel-rocket::after {
   content: "";
   position: absolute;
-  left: -25px;
-  top: -8px;
-  width: 4px;
-  height: 4px;
+  left: -40px;
+  top: -14px;
+  width: 6px;
+  height: 6px;
   background: #e0e0e0;
   box-shadow:
-    /* Helmet */
-    0px -4px 0 #e0e0e0,  4px -4px 0 #e0e0e0,
-    -4px 0px 0 #e0e0e0,  0px 0px 0 #4488ff,  4px 0px 0 #4488ff,  8px 0px 0 #e0e0e0,
-    0px 4px 0 #e0e0e0,  4px 4px 0 #e0e0e0,
-    /* Body */
-    0px 8px 0 #e0e0e0,  4px 8px 0 #e0e0e0,
-    0px 12px 0 #e0e0e0,  4px 12px 0 #e0e0e0,
-    /* Arms */
-    -4px 8px 0 #e0e0e0,  8px 8px 0 #e0e0e0,
+    /* Helmet top */
+    0px -6px 0 #e0e0e0,  6px -6px 0 #e0e0e0,
+    /* Helmet visor row */
+    -6px 0px 0 #e0e0e0,  0px 0px 0 #4488ff,  6px 0px 0 #66aaff,  12px 0px 0 #e0e0e0,
+    /* Helmet bottom */
+    0px 6px 0 #e0e0e0,  6px 6px 0 #e0e0e0,
+    /* Torso */
+    0px 12px 0 #e0e0e0,  6px 12px 0 #e0e0e0,
+    0px 18px 0 #c0c0c0,  6px 18px 0 #c0c0c0,
+    /* Arms reaching out */
+    -6px 12px 0 #e0e0e0,  -12px 12px 0 #e0e0e0,
+    12px 12px 0 #e0e0e0,
     /* Legs */
-    -4px 16px 0 #e0e0e0,  8px 16px 0 #e0e0e0,
+    -6px 24px 0 #e0e0e0,  12px 24px 0 #e0e0e0,
+    -6px 30px 0 #aaa,  12px 30px 0 #aaa,
     /* Jetpack */
-    -4px 12px 0 #888,  8px 12px 0 #888,
-    /* Jetpack flame */
-    -4px 16px 0 #00ffff44,  0px 20px 0 #00ffff33;
-  animation: astronaut-float 3s ease-in-out infinite alternate;
+    -6px 18px 0 #666,  12px 18px 0 #666,
+    /* Jetpack thrust */
+    -6px 24px 0 #00ffff55,  12px 24px 0 #00ffff55,
+    -6px 30px 0 #00ffff33,  12px 30px 0 #00ffff33;
+  animation: astronaut-float 4s ease-in-out infinite alternate;
 }
 
 @keyframes rocket-drift {
-  0% { transform: translate(0, 0) rotate(-25deg); }
-  50% { transform: translate(-8px, -6px) rotate(-22deg); }
-  100% { transform: translate(4px, 3px) rotate(-28deg); }
+  0% { transform: translate(0, 0) rotate(-30deg); }
+  30% { transform: translate(-12px, -8px) rotate(-25deg); }
+  70% { transform: translate(6px, 4px) rotate(-35deg); }
+  100% { transform: translate(-4px, -2px) rotate(-28deg); }
 }
 
 @keyframes exhaust-flicker {
-  0% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% { opacity: 1; filter: brightness(1); }
+  100% { opacity: 0.7; filter: brightness(1.3); }
 }
 
 @keyframes astronaut-float {
-  0% { transform: translate(0, 0) rotate(5deg); }
-  50% { transform: translate(-3px, -5px) rotate(-3deg); }
-  100% { transform: translate(2px, 3px) rotate(8deg); }
+  0% { transform: translate(0, 0) rotate(8deg); }
+  25% { transform: translate(-4px, -8px) rotate(-2deg); }
+  50% { transform: translate(3px, -4px) rotate(12deg); }
+  75% { transform: translate(-2px, 2px) rotate(5deg); }
+  100% { transform: translate(5px, -6px) rotate(-5deg); }
 }
 
 @keyframes moon-shine {
