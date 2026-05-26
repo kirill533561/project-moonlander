@@ -339,24 +339,23 @@ export default function GoalsPage() {
                     {dream.name}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
                   <button
                     onClick={() => toggleDream(dream.id)}
-                    className={`pixel-btn w-12 h-12 flex items-center justify-center text-xl ${
-                      dream.achieved ? "pixel-btn-green" : ""
+                    className={`w-12 h-12 flex items-center justify-center text-2xl border-3 transition-colors ${
+                      dream.achieved
+                        ? "bg-pixel-green/20 border-pixel-green text-pixel-green"
+                        : "bg-transparent border-[#2a2a4a] text-gray-500 hover:border-pixel-cyan"
                     }`}
                   >
-                    {dream.achieved ? (
-                      <span className="text-pixel-green">&#10003;</span>
-                    ) : (
-                      <span className="text-pixel-red">&#10007;</span>
-                    )}
+                    {dream.achieved ? "✓" : "○"}
                   </button>
                   <button
                     onClick={() => deleteDream(dream.id)}
-                    className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2"
+                    className="font-pixel-body text-sm text-gray-600 hover:text-pixel-red px-1 py-1 border border-transparent hover:border-pixel-red/50 transition-colors"
+                    title="Delete dream"
                   >
-                    ✕
+                    🗑
                   </button>
                 </div>
               </div>

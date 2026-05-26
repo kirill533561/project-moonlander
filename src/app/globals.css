@@ -302,13 +302,21 @@
     -4px 20px 0 #ffd700,  0px 20px 0 #ffd700,  4px 20px 0 #ffd700,  8px 20px 0 #ffd700,  12px 20px 0 #ffd700,  16px 20px 0 #ffd700,
     0px 24px 0 #ffd700,  4px 24px 0 #ffd700,  8px 24px 0 #ffd700,  12px 24px 0 #ffd700,
     4px 28px 0 #ffd700,  8px 28px 0 #ffd700,
-    /* Glow */
-    -4px 4px 0 #ffd70033,  16px 0px 0 #ffd70033,
-    -8px 12px 0 #ffd70022,  20px 12px 0 #ffd70022,
-    -4px 24px 0 #ffd70033,  16px 24px 0 #ffd70033,
-    4px 32px 0 #ffd70022,  8px 32px 0 #ffd70022;
-  animation: moon-pulse 4s steps(2) infinite alternate;
+    /* Inner glow ring */
+    -4px 4px 0 2px #ffd70044,  16px 0px 0 2px #ffd70044,
+    -8px 12px 0 2px #ffd70033,  20px 12px 0 2px #ffd70033,
+    -4px 24px 0 2px #ffd70044,  16px 24px 0 2px #ffd70044,
+    4px 32px 0 2px #ffd70033,  8px 32px 0 2px #ffd70033,
+    /* Outer glow halo */
+    -8px 0px 0 4px #ffd70011,  20px 0px 0 4px #ffd70011,
+    -12px 8px 0 6px #ffd70011,  24px 8px 0 6px #ffd70011,
+    -12px 16px 0 6px #ffd70011,  24px 16px 0 6px #ffd70011,
+    -8px 28px 0 4px #ffd70011,  20px 28px 0 4px #ffd70011,
+    4px -8px 0 4px #ffd70011,  8px -8px 0 4px #ffd70011,
+    4px 36px 0 4px #ffd70011,  8px 36px 0 4px #ffd70011;
+  animation: moon-shine 3s ease-in-out infinite alternate;
   image-rendering: pixelated;
+  filter: drop-shadow(0 0 12px #ffd70044) drop-shadow(0 0 30px #ffd70022);
 }
 
 @keyframes pixel-twinkle {
@@ -317,9 +325,10 @@
   100% { opacity: 1; }
 }
 
-@keyframes moon-pulse {
-  0% { filter: brightness(0.8); }
-  100% { filter: brightness(1.2); }
+@keyframes moon-shine {
+  0% { filter: drop-shadow(0 0 8px #ffd70033) drop-shadow(0 0 20px #ffd70011); }
+  50% { filter: drop-shadow(0 0 16px #ffd70066) drop-shadow(0 0 40px #ffd70033); }
+  100% { filter: drop-shadow(0 0 12px #ffd70044) drop-shadow(0 0 30px #ffd70022); }
 }
 
 /* 8-bit pixel sparkle stars — cross shape */

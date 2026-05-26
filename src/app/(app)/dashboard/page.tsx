@@ -36,6 +36,11 @@ export default function DashboardPage() {
   const [financeData] = useLocalStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
   const [financeVars] = useLocalStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
 
+  // Zoom states for charts
+  const [yearlyZoom, setYearlyZoom] = useState<"all" | "3y" | "1y">("all");
+  const [monthlyYear, setMonthlyYear] = useState(new Date().getFullYear());
+  const [cashFlowYear, setCashFlowYear] = useState(new Date().getFullYear());
+
   const demoCountersTyped: CounterGoal[] = DEMO_COUNTERS;
   const activeCounters = demoMode ? demoCountersTyped : counters;
   const activeCounts = demoMode ? DEMO_COUNTER_VALUES : counts;
@@ -60,41 +65,49 @@ export default function DashboardPage() {
       }
     }
 
-    const currentYear = new Date().getFullYear();
-    const yearData = financeData[currentYear];
-    let cumulative = 0;
-    if (yearData) {
-      for (let i = 0; i < 12; i++) {
-        const md = yearData[i];
-        let salary = 0, expenses = 0;
-        if (md) {
-          for (const [varId, fields] of Object.entries(md)) {
-            const v = financeVars.find((fv) => fv.id === varId);
-            if (!v) continue;
-            if (v.type === "income_source") salary += fields.amount ?? 0;
-            else if (v.type === "expense_category") expenses += fields.amount ?? 0;
-          }
-        }
-        if (salary > 0 || expenses > 0) {
-          cumulative += salary - expenses;
-          monthly.push({ month: MONTHS_SHORT[i], salary: Math.round(salary), expenses: Math.round(expenses), net: Math.round(salary - expenses), cumulative: Math.round(cumulative) });
-        }
-      }
-    }
+    const allYears = Object.keys(financeData).map(Number).sort();
 
     const yearlyChart = Object.entries(yearly)
       .sort(([a], [b]) => Number(a) - Number(b))
       .filter(([, v]) => v.salary > 0 || v.expenses > 0)
       .map(([year, v]) => ({ year, salary: Math.round(v.salary), expenses: Math.round(v.expenses), net: Math.round(v.salary - v.expenses), savings: Math.round(v.salary - v.expenses) }));
 
+    const currentYear = new Date().getFullYear();
     const cy = yearly[currentYear] || { salary: 0, expenses: 0, investments: 0 };
     const prevYear = yearly[currentYear - 1] || { salary: 0, expenses: 0, investments: 0 };
     const savingsRate = cy.salary > 0 ? ((cy.salary - cy.expenses) / cy.salary * 100) : 0;
-    const bestMonth = monthly.length > 0 ? monthly.reduce((a, b) => a.net > b.net ? a : b) : null;
-    const worstMonth = monthly.length > 0 ? monthly.reduce((a, b) => a.net < b.net ? a : b) : null;
-    const avgExpense = monthly.length > 0 ? Math.round(monthly.reduce((s, m) => s + m.expenses, 0) / monthly.length) : 0;
 
-    return { yearly, yearlyChart, monthly, currentYear: cy, prevYear, savingsRate, bestMonth, worstMonth, avgExpense, currentYearNum: currentYear };
+    const getMonthlyForYear = (yr: number) => {
+      const yd = financeData[yr];
+      const result: typeof monthly = [];
+      let cum = 0;
+      if (yd) {
+        for (let i = 0; i < 12; i++) {
+          const md = yd[i];
+          let salary = 0, expenses = 0;
+          if (md) {
+            for (const [varId, fields] of Object.entries(md)) {
+              const v = financeVars.find((fv) => fv.id === varId);
+              if (!v) continue;
+              if (v.type === "income_source") salary += fields.amount ?? 0;
+              else if (v.type === "expense_category") expenses += fields.amount ?? 0;
+            }
+          }
+          if (salary > 0 || expenses > 0) {
+            cum += salary - expenses;
+            result.push({ month: MONTHS_SHORT[i], salary: Math.round(salary), expenses: Math.round(expenses), net: Math.round(salary - expenses), cumulative: Math.round(cum) });
+          }
+        }
+      }
+      return result;
+    };
+
+    const defaultMonthly = getMonthlyForYear(currentYear);
+    const bestMonth = defaultMonthly.length > 0 ? defaultMonthly.reduce((a, b) => a.net > b.net ? a : b) : null;
+    const worstMonth = defaultMonthly.length > 0 ? defaultMonthly.reduce((a, b) => a.net < b.net ? a : b) : null;
+    const avgExpense = defaultMonthly.length > 0 ? Math.round(defaultMonthly.reduce((s, m) => s + m.expenses, 0) / defaultMonthly.length) : 0;
+
+    return { yearly, yearlyChart, monthly: defaultMonthly, currentYear: cy, prevYear, savingsRate, bestMonth, worstMonth, avgExpense, currentYearNum: currentYear, allYears, getMonthlyForYear };
   }, [financeData, financeVars]);
 
   const hasFinanceData = metrics.yearlyChart.length > 0 || metrics.monthly.length > 0;
@@ -227,17 +240,23 @@ export default function DashboardPage() {
       )}
 
       {/* ===== CASH FLOW TRAJECTORY ===== */}
-      {metrics.monthly.length > 0 && (
+      {metrics.allYears.length > 0 && (
         <div className="pixel-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-pixel text-xs text-pixel-cyan">CASH FLOW TRAJECTORY — {metrics.currentYearNum}</h3>
-            <span className={`font-pixel text-xs ${metrics.monthly[metrics.monthly.length - 1].cumulative >= 0 ? "text-pixel-green" : "text-pixel-red"}`}>
-              €{metrics.monthly[metrics.monthly.length - 1].cumulative.toLocaleString()}
-            </span>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="font-pixel text-xs text-pixel-cyan">CASH FLOW TRAJECTORY</h3>
+            <div className="flex gap-1">
+              {metrics.allYears.map((yr) => (
+                <button key={yr} onClick={() => setCashFlowYear(yr)}
+                  className={`font-pixel-body text-sm px-2 py-1 border transition-colors ${cashFlowYear === yr ? "border-pixel-cyan bg-pixel-cyan/20 text-pixel-cyan" : "border-[#2a2a4a] text-gray-500 hover:text-white"}`}>
+                  {yr}
+                </button>
+              ))}
+            </div>
           </div>
+          {(() => { const cfData = metrics.getMonthlyForYear(cashFlowYear); return cfData.length > 0 ? (
           <div className="w-full h-44 sm:h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={metrics.monthly}>
+              <AreaChart data={cfData}>
                 <defs>
                   <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#00ffff" stopOpacity={0.3} />
@@ -253,16 +272,28 @@ export default function DashboardPage() {
               </AreaChart>
             </ResponsiveContainer>
           </div>
+          ) : <p className="font-pixel-body text-base text-gray-500 text-center py-4">No data for {cashFlowYear}</p>; })()}
         </div>
       )}
 
       {/* ===== MONTHLY SIGNAL READOUT (salary vs expenses) ===== */}
-      {metrics.monthly.length > 0 && (
+      {metrics.allYears.length > 0 && (
         <div className="pixel-card p-4">
-          <h3 className="font-pixel text-xs text-pixel-gold mb-3">MONTHLY SIGNAL — {metrics.currentYearNum}</h3>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="font-pixel text-xs text-pixel-gold">MONTHLY SIGNAL</h3>
+            <div className="flex gap-1">
+              {metrics.allYears.map((yr) => (
+                <button key={yr} onClick={() => setMonthlyYear(yr)}
+                  className={`font-pixel-body text-sm px-2 py-1 border transition-colors ${monthlyYear === yr ? "border-pixel-gold bg-pixel-gold/20 text-pixel-gold" : "border-[#2a2a4a] text-gray-500 hover:text-white"}`}>
+                  {yr}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(() => { const mData = metrics.getMonthlyForYear(monthlyYear); return mData.length > 0 ? (
           <div className="w-full h-48 sm:h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.monthly} barGap={1} barSize={20}>
+              <BarChart data={mData} barGap={1} barSize={20}>
                 <CartesianGrid stroke="#2a2a4a" strokeDasharray="3 3" />
                 <XAxis dataKey="month" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} />
                 <YAxis tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false}
@@ -273,16 +304,32 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          ) : <p className="font-pixel-body text-base text-gray-500 text-center py-4">No data for {monthlyYear}</p>; })()}
         </div>
       )}
 
       {/* ===== YEARLY COMPARISON ===== */}
-      {metrics.yearlyChart.length > 1 && (
+      {metrics.yearlyChart.length > 1 && (() => {
+        const currentYr = new Date().getFullYear();
+        const filtered = yearlyZoom === "1y" ? metrics.yearlyChart.filter((y) => Number(y.year) >= currentYr)
+          : yearlyZoom === "3y" ? metrics.yearlyChart.filter((y) => Number(y.year) >= currentYr - 2)
+          : metrics.yearlyChart;
+        return (
         <div className="pixel-card p-4">
-          <h3 className="font-pixel text-xs text-pixel-purple mb-3">MULTI-YEAR TELEMETRY</h3>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="font-pixel text-xs text-pixel-purple">MULTI-YEAR TELEMETRY</h3>
+            <div className="flex gap-1">
+              {(["all", "3y", "1y"] as const).map((z) => (
+                <button key={z} onClick={() => setYearlyZoom(z)}
+                  className={`font-pixel-body text-sm px-2 py-1 border transition-colors ${yearlyZoom === z ? "border-pixel-purple bg-pixel-purple/20 text-pixel-purple" : "border-[#2a2a4a] text-gray-500 hover:text-white"}`}>
+                  {z === "all" ? "ALL" : z.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="w-full h-48 sm:h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.yearlyChart} barGap={2}>
+              <BarChart data={filtered} barGap={2}>
                 <CartesianGrid stroke="#2a2a4a" strokeDasharray="3 3" />
                 <XAxis dataKey="year" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} />
                 <YAxis tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false}
@@ -295,7 +342,7 @@ export default function DashboardPage() {
           </div>
           {/* Year-over-year tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-[#2a2a4a]">
-            {metrics.yearlyChart.map((y) => (
+            {filtered.map((y) => (
               <div key={y.year} className="text-center">
                 <p className="font-pixel text-[8px] text-gray-500">{y.year}</p>
                 <p className={`font-pixel-body text-lg ${y.net >= 0 ? "text-pixel-green" : "text-pixel-red"}`}>
@@ -305,7 +352,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-      )}
+      ); })()}
 
       {/* ===== QUICK COUNTERS ===== */}
       <div className="pixel-card p-4">
