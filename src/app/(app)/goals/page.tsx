@@ -30,6 +30,8 @@ interface LongRangeDream {
   id: string;
   name: string;
   achieved: boolean;
+  target?: number | null;
+  current?: number | null;
 }
 
 interface EconomicGoal {
@@ -103,6 +105,7 @@ export default function GoalsPage() {
 
   // Add-dialog form states
   const [newDreamName, setNewDreamName] = useState("");
+  const [newDreamTarget, setNewDreamTarget] = useState("");
   const [newEconName, setNewEconName] = useState("");
   const [newEconTarget, setNewEconTarget] = useState("");
   const [newEconType, setNewEconType] = useState<"cumulative" | "end_of_year">("cumulative");
@@ -145,13 +148,27 @@ export default function GoalsPage() {
 
   const addDream = useCallback(() => {
     if (!newDreamName.trim()) return;
+    const target = newDreamTarget ? Number(newDreamTarget) : null;
     setDreams((prev) => [
       ...prev,
-      { id: generateId(), name: newDreamName.trim(), achieved: false },
+      { id: generateId(), name: newDreamName.trim(), achieved: false, target, current: target ? 0 : null },
     ]);
     setNewDreamName("");
+    setNewDreamTarget("");
     playDreamAdded();
-  }, [newDreamName]);
+  }, [newDreamName, newDreamTarget]);
+
+  const updateDreamCurrent = useCallback((id: string, value: string) => {
+    setDreams((prev) =>
+      prev.map((d) => {
+        if (d.id !== id) return d;
+        const current = value === "" ? 0 : Number(value);
+        const achieved = d.target ? current >= d.target : d.achieved;
+        if (achieved && !d.achieved) setTimeout(() => playSuccess(), 100);
+        return { ...d, current, achieved };
+      })
+    );
+  }, []);
 
   /* --- economic actions --- */
   const addEconomicGoal = useCallback(() => {
@@ -334,41 +351,82 @@ export default function GoalsPage() {
               LONG-RANGE DREAMS
             </h3>
 
-            {dreams.map((dream) => (
-              <div
-                key={dream.id}
-                className={`pixel-card p-4 flex items-center gap-3 transition-all ${
-                  dream.achieved ? "border-pixel-green" : ""
-                }`}
-              >
-                {/* Toggle — tap to mark achieved */}
-                <button
-                  onClick={() => toggleDream(dream.id)}
-                  className={`w-10 h-10 flex items-center justify-center shrink-0 border-2 transition-all font-pixel-body text-xl ${
-                    dream.achieved
-                      ? "bg-pixel-green border-pixel-green text-space-dark"
-                      : "bg-transparent border-gray-600 text-gray-600 hover:border-pixel-purple hover:text-pixel-purple"
+            {dreams.map((dream) => {
+              const hasTarget = dream.target != null && dream.target > 0;
+              const pct = hasTarget ? Math.min(((dream.current ?? 0) / dream.target!) * 100, 100) : 0;
+              return (
+                <div
+                  key={dream.id}
+                  className={`pixel-card p-4 flex flex-col gap-3 transition-all ${
+                    dream.achieved ? "border-pixel-green" : ""
                   }`}
                 >
-                  {dream.achieved ? "★" : "☆"}
-                </button>
+                  <div className="flex items-center gap-3">
+                    {/* Toggle — tap to mark achieved (only for non-target dreams) */}
+                    {!hasTarget && (
+                      <button
+                        onClick={() => toggleDream(dream.id)}
+                        className={`w-10 h-10 flex items-center justify-center shrink-0 border-2 transition-all font-pixel-body text-xl ${
+                          dream.achieved
+                            ? "bg-pixel-green border-pixel-green text-white"
+                            : "bg-transparent border-gray-600 text-gray-600 hover:border-pixel-purple hover:text-pixel-purple"
+                        }`}
+                      >
+                        {dream.achieved ? "★" : "☆"}
+                      </button>
+                    )}
 
-                {/* Name */}
-                <div className="flex-1 min-w-0">
-                  <p className={`font-pixel-body text-xl truncate ${dream.achieved ? "text-pixel-green line-through" : "text-white"}`}>
-                    {dream.name}
-                  </p>
+                    {hasTarget && (
+                      <span className={`text-xl shrink-0 ${dream.achieved ? "text-pixel-green" : "text-pixel-purple"}`}>
+                        {dream.achieved ? "★" : "🎯"}
+                      </span>
+                    )}
+
+                    {/* Name */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-pixel-body text-xl truncate ${dream.achieved ? "text-pixel-green" : "text-white"}`}>
+                        {dream.name}
+                      </p>
+                    </div>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => deleteDream(dream.id)}
+                      className="pixel-btn w-10 h-10 flex items-center justify-center text-lg shrink-0 border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
+                    >
+                      −
+                    </button>
+                  </div>
+
+                  {/* Target-based: show current value input + progress */}
+                  {hasTarget && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          value={dream.current ?? 0}
+                          onChange={(e) => updateDreamCurrent(dream.id, e.target.value)}
+                          className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-xl px-3 py-1.5 w-28 focus:border-pixel-purple focus:outline-none text-center"
+                          step="any"
+                        />
+                        <span className="font-pixel-body text-lg text-gray-500">
+                          / {dream.target!.toLocaleString()}
+                        </span>
+                        <span className={`font-pixel-body text-lg ml-auto ${pct >= 100 ? "text-pixel-green" : "text-pixel-purple"}`}>
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="pixel-progress h-4">
+                        <div
+                          className={`pixel-progress-fill ${pct >= 100 ? "bg-pixel-green" : "bg-pixel-purple"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {/* Delete */}
-                <button
-                  onClick={() => deleteDream(dream.id)}
-                  className="pixel-btn w-10 h-10 flex items-center justify-center text-lg shrink-0 border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
-                >
-                  −
-                </button>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Add Dream Dialog */}
             <Dialog>
@@ -387,6 +445,17 @@ export default function GoalsPage() {
                     onChange={(e) => setNewDreamName(e.target.value)}
                     className="w-full bg-space-dark border-2 border-pixel-purple px-3 py-2 font-pixel-body text-lg text-white placeholder-gray-600 focus:outline-none focus:border-pixel-cyan"
                   />
+                  <div>
+                    <p className="font-pixel-body text-sm text-gray-500 mb-1">Target value (optional — leave empty for simple ✓/✗)</p>
+                    <input
+                      type="number"
+                      placeholder="e.g. 5000, 100000..."
+                      value={newDreamTarget}
+                      onChange={(e) => setNewDreamTarget(e.target.value)}
+                      className="w-full bg-space-dark border-2 border-pixel-purple px-3 py-2 font-pixel-body text-lg text-white placeholder-gray-600 focus:outline-none focus:border-pixel-cyan"
+                      step="any"
+                    />
+                  </div>
                   <DialogClose onClick={addDream} className="pixel-btn pixel-btn-purple px-4 py-3 w-full font-pixel-body text-lg">LAUNCH DREAM</DialogClose>
                 </div>
               </DialogContent>

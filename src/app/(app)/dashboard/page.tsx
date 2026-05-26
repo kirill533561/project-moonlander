@@ -327,16 +327,32 @@ export default function DashboardPage() {
         <div className="pixel-card p-4">
           <h3 className="font-pixel text-xs text-pixel-purple mb-3">LONG-RANGE DREAMS</h3>
           <div className="flex flex-col gap-2">
-            {dreams.map((dream) => (
-              <div key={dream.id} className="flex items-center gap-3 py-1">
-                <span className={`text-xl ${dream.achieved ? "text-pixel-green" : "text-pixel-purple/60"}`}>
-                  {dream.achieved ? "★" : "☆"}
-                </span>
-                <span className={`font-pixel-body text-lg flex-1 ${dream.achieved ? "text-pixel-green line-through" : "text-gray-300"}`}>
-                  {dream.name}
-                </span>
-              </div>
-            ))}
+            {dreams.map((dream) => {
+              const hasTarget = dream.target != null && dream.target > 0;
+              const pct = hasTarget ? Math.min(((dream.current ?? 0) / dream.target!) * 100, 100) : 0;
+              return (
+                <div key={dream.id} className="flex flex-col gap-1 py-1">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xl ${dream.achieved ? "text-pixel-green" : hasTarget ? "text-pixel-purple/60" : "text-pixel-purple/60"}`}>
+                      {dream.achieved ? "★" : hasTarget ? "🎯" : "☆"}
+                    </span>
+                    <span className={`font-pixel-body text-lg flex-1 ${dream.achieved ? "text-pixel-green" : "text-gray-300"}`}>
+                      {dream.name}
+                    </span>
+                    {hasTarget && (
+                      <span className="font-pixel-body text-base text-gray-500">
+                        {(dream.current ?? 0).toLocaleString()} / {dream.target!.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {hasTarget && (
+                    <div className="pixel-progress h-2 ml-9">
+                      <div className={`pixel-progress-fill ${pct >= 100 ? "bg-pixel-green" : "bg-pixel-purple"}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div className="mt-3 pt-3 border-t border-[#2a2a4a] flex items-center justify-between">
             <span className="font-pixel-body text-base text-gray-500">
