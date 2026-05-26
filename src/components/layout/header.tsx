@@ -2,6 +2,7 @@
 
 import { useEffect, useState, createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { startThemeSong, stopThemeSong, isThemePlaying } from "@/lib/sounds";
 import type { User } from "@supabase/supabase-js";
 
 const DemoContext = createContext<{ demoMode: boolean; setDemoMode: (v: boolean) => void }>({
@@ -25,6 +26,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 export function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [musicOn, setMusicOn] = useState(false);
   const { demoMode, setDemoMode } = useDemoMode();
   const supabase = createClient();
 
@@ -59,6 +61,25 @@ export function Header() {
         )}
         {user && (
           <>
+            <button
+              onClick={() => {
+                if (isThemePlaying()) {
+                  stopThemeSong();
+                  setMusicOn(false);
+                } else {
+                  startThemeSong();
+                  setMusicOn(true);
+                }
+              }}
+              className={`w-9 h-9 border-2 flex items-center justify-center font-pixel-body text-base transition-colors ${
+                musicOn
+                  ? "border-pixel-cyan text-pixel-cyan animate-pulse"
+                  : "border-[#2a2a4a] text-gray-500 hover:border-pixel-cyan hover:text-pixel-cyan"
+              }`}
+              title={musicOn ? "Stop music" : "Play theme"}
+            >
+              {musicOn ? "♫" : "♪"}
+            </button>
             <button
               onClick={() => setShowMenu(!showMenu)}
               className="flex items-center gap-2"
