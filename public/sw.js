@@ -1,5 +1,5 @@
-const CACHE_NAME = "moonlander-v4";
-const PRECACHE = ["/icon-192.png", "/icon-512.png", "/manifest.json"];
+const CACHE_NAME = "moonlander-v5";
+const PRECACHE = ["/offline.html", "/icon-192.png", "/icon-512.png", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -20,17 +20,21 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  const isNavigate = event.request.mode === "navigate";
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         if (response.status === 200) {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        isNavigate
+          ? caches.match("/offline.html")
+          : caches.match(event.request)
+      )
   );
 });
