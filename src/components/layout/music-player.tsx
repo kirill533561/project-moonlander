@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TRACKS = [
@@ -212,26 +213,28 @@ export function MusicPlayer() {
         <CassetteIcon playing={playing} />
       </button>
 
-      {/* Full-screen modal */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6"
-          >
-            <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setOpen(false)} />
+      {/* Full-screen modal — portaled to body to escape header stacking context */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 md:p-6 md:items-center"
+              >
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-md" onClick={() => setOpen(false)} />
 
-            <motion.div
-              initial={{ scale: 0.85, y: 30, rotateX: 8 }}
-              animate={{ scale: 1, y: 0, rotateX: 0 }}
-              exit={{ scale: 0.85, y: 30, rotateX: 8 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative z-10 w-full max-w-lg"
-              style={{ perspective: 1200 }}
-            >
+                <motion.div
+                  initial={{ scale: 0.85, y: 30, rotateX: 8 }}
+                  animate={{ scale: 1, y: 0, rotateX: 0 }}
+                  exit={{ scale: 0.85, y: 30, rotateX: 8 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="relative z-10 w-full max-w-2xl my-4"
+                  style={{ perspective: 1200 }}
+                >
               {/* Close */}
               <button
                 onClick={() => setOpen(false)}
@@ -394,7 +397,7 @@ export function MusicPlayer() {
               <p className="font-pixel text-[7px] text-gray-500 mt-5 mb-3 tracking-[0.15em]">
                 TAPE COLLECTION
               </p>
-              <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x">
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5">
                 {TRACKS.map((t, i) => {
                   const isLoaded = loaded === i;
                   const isInserting = inserting === i;
@@ -416,7 +419,7 @@ export function MusicPlayer() {
                           : { type: "spring", stiffness: 300, damping: 20 }
                       }
                       style={{ perspective: 600, transformStyle: "preserve-3d" }}
-                      className="flex-shrink-0 w-[120px] md:w-[140px] snap-center"
+                      className="w-full"
                     >
                       <div
                         className="overflow-hidden transition-shadow duration-300"
@@ -480,7 +483,9 @@ export function MusicPlayer() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body,
+    )}
     </>
   );
 }
