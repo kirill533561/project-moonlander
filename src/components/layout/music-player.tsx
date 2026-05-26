@@ -6,11 +6,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { playCassettePickup, playCassetteInsert, playCassetteStart } from "@/lib/sounds";
 
 const TRACKS = [
-  { src: "/music/Final_Approach.mp3", title: "FINAL APPROACH", cover: null as string | null, color: "#00ffff", shell: "#1a2a4a", edge: "#0e1a30" },
-  { src: "/music/Crossing_the_Far_Perimeter.mp3", title: "CROSSING THE FAR PERIMETER", cover: null as string | null, color: "#b967ff", shell: "#2a1a4a", edge: "#1a0e30" },
   { src: "/music/Approaching_the_Far_Side.mp3", title: "APPROACHING THE FAR SIDE", cover: "/music/Approaching_the_Far_Side.jpg", color: "#ffd700", shell: "#3a2a1a", edge: "#281a0e" },
   { src: "/music/Through_The_Asteroid_Belt.mp3", title: "THROUGH THE ASTEROID BELT", cover: "/music/Through_The_Asteroid_Belt.jpg", color: "#ff4444", shell: "#3a1a1a", edge: "#280e0e" },
   { src: "/music/Above_The_Silver_Glass.mp3", title: "ABOVE THE SILVER GLASS", cover: "/music/Above_The_Silver_Glass.jpg", color: "#7dd3fc", shell: "#1a2a3a", edge: "#0e1a28" },
+  { src: "/music/Midnight_Chrome_Run.mp3", title: "MIDNIGHT CHROME RUN", cover: null as string | null, color: "#ff00ff", shell: "#2e1a3a", edge: "#1e0e28" },
+  { src: "/music/Neon_Sax_Parade.mp3", title: "NEON SAX PARADE", cover: null as string | null, color: "#00ff88", shell: "#1a3a2a", edge: "#0e281a" },
 ];
 
 const PX = 5;
@@ -247,6 +247,8 @@ export function MusicPlayer() {
                       borderBottom: "3px solid #1a1a30",
                       borderRight: "3px solid #1a1a30",
                       boxShadow: pixelDepth("#161630", "#0a0a1a", PX + 2),
+                      transform: "perspective(900px) rotateX(4deg)",
+                      transformOrigin: "center bottom",
                     }}
                   >
                     {/* Top highlight */}
@@ -402,7 +404,10 @@ export function MusicPlayer() {
 
                   {/* ── Tape collection ── */}
                   <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">TAPE COLLECTION</p>
-                  <div className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-3">
+                  <div
+                    className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-3"
+                    style={{ perspective: 800, transformStyle: "preserve-3d" }}
+                  >
                     {TRACKS.map((t, i) => {
                       const isLoaded = loaded === i;
                       const isInserting = inserting === i;
@@ -411,12 +416,12 @@ export function MusicPlayer() {
                         <motion.button
                           key={i}
                           onClick={() => insertCassette(i)}
-                          whileHover={!isInserting ? { y: -8, scale: 1.04 } : undefined}
-                          whileTap={!isInserting ? { y: 0, scale: 0.97 } : undefined}
+                          whileHover={!isInserting ? { y: -10, rotateX: 2, scale: 1.06 } : undefined}
+                          whileTap={!isInserting ? { y: 0, rotateX: 18, scale: 0.97 } : undefined}
                           animate={
                             isInserting
-                              ? { y: -70, rotateX: 45, scale: 0.4, opacity: 0 }
-                              : { y: 0, rotateX: 0, scale: 1, opacity: 1 }
+                              ? { y: -70, rotateX: 55, scale: 0.4, opacity: 0 }
+                              : { y: 0, rotateX: 12, scale: 1, opacity: 1 }
                           }
                           transition={
                             isInserting
