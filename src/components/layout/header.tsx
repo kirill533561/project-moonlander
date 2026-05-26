@@ -2,6 +2,7 @@
 
 import { useEffect, useState, createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { MusicPlayer } from "@/components/layout/music-player";
 import type { User } from "@supabase/supabase-js";
 
 const DemoContext = createContext<{ demoMode: boolean; setDemoMode: (v: boolean) => void }>({
@@ -59,6 +60,7 @@ export function Header() {
         )}
         {user && (
           <>
+            <MusicPlayer />
             <button
               onClick={() => setShowMenu(!showMenu)}
               className="flex items-center gap-2"
