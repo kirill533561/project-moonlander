@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getMonthlyBadge, getYearlyBadge, getBadgeGradient } from "@/lib/rewards";
 import { playLevelUp } from "@/lib/sounds";
+import { RewardWheel } from "@/components/reward-wheel";
 
 /* ---------- types ---------- */
 
@@ -31,7 +32,7 @@ const MONTH_SHORT = [
   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
 ];
 
-const MONTHLY_DATA_2025: MonthRecord[] = MONTH_NAMES.map((m, i) => ({
+const MONTHLY_DATA_2026: MonthRecord[] = MONTH_NAMES.map((m, i) => ({
   month: m,
   shortMonth: MONTH_SHORT[i],
   completionPct: 0,
@@ -39,7 +40,7 @@ const MONTHLY_DATA_2025: MonthRecord[] = MONTH_NAMES.map((m, i) => ({
 }));
 
 const YEARLY_DATA: YearRecord[] = [
-  { year: 2025, goalsMetPct: 0, inProgress: true },
+  { year: 2026, goalsMetPct: 0, inProgress: true },
 ];
 
 /* ---------- helpers ---------- */
@@ -82,11 +83,11 @@ function computeStats(months: MonthRecord[]) {
 /* ---------- component ---------- */
 
 export default function TrophiesPage() {
-  const [months] = useState<MonthRecord[]>(MONTHLY_DATA_2025);
+  const [months] = useState<MonthRecord[]>(MONTHLY_DATA_2026);
   const [years] = useState<YearRecord[]>(YEARLY_DATA);
   const [tappedBadge, setTappedBadge] = useState<string | null>(null);
 
-  // Current month badge (May 2025 in mock data, index 4)
+  // Current month badge (May 2026 in mock data, index 4)
   const currentMonthIdx = 4;
   const currentMonth = months[currentMonthIdx];
   const currentBadge = getMonthlyBadge(currentMonth.completionPct);
@@ -123,7 +124,7 @@ export default function TrophiesPage() {
           {currentBadge.name.toUpperCase()}
         </p>
         <p className="font-pixel-body text-sm text-gray-400 mt-1">
-          {currentMonth.month} 2025 &mdash;{" "}
+          {currentMonth.month} 2026 &mdash;{" "}
           {Math.round(currentMonth.completionPct * 100)}% completion
         </p>
         <div className="flex gap-1 mt-3">
@@ -145,7 +146,7 @@ export default function TrophiesPage() {
       {/* ===== Badge Collection Grid ===== */}
       <section>
         <h3 className="font-pixel text-[10px] text-pixel-cyan mb-3">
-          2025 BADGE COLLECTION
+          2026 BADGE COLLECTION
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {months.map((m) => {
@@ -317,6 +318,14 @@ export default function TrophiesPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      {/* ===== Gacha Reward Wheel ===== */}
+      <section>
+        <h3 className="font-pixel text-xs text-pixel-gold mb-3">
+          MONTHLY REWARD
+        </h3>
+        <RewardWheel canSpin={currentMonth.completionPct >= 0.9} />
       </section>
     </div>
   );

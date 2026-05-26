@@ -2,12 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { playCounterClick, playSuccess } from "@/lib/sounds";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+type GoalTab = "dreams" | "economic" | "wishlist" | "personal";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +21,7 @@ const MONTHS = [
 
 const CURRENT_YEAR = 2026;
 const CURRENT_MONTH = 4; // May = index 4 (0-based)
-const YEARS = [2024, 2025, 2026, 2027];
+const YEARS = [2025, 2026, 2027];
 
 /* ---------- types ---------- */
 
@@ -99,6 +94,7 @@ function generateId(): string {
 
 export default function GoalsPage() {
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+  const [activeTab, setActiveTab] = useState<GoalTab>("dreams");
   const [dreams, setDreams] = useState<LongRangeDream[]>(INITIAL_DREAMS);
   const [economic, setEconomic] = useState<EconomicGoal[]>(INITIAL_ECONOMIC);
   const [wishlist, setWishlist] = useState<WishlistItem[]>(INITIAL_WISHLIST);
@@ -297,37 +293,36 @@ export default function GoalsPage() {
         ))}
       </div>
 
-      {/* ===== Goal Sections Tabs ===== */}
-      <Tabs defaultValue="dreams" className="w-full">
-        <TabsList className="w-full grid grid-cols-2 gap-2 bg-transparent h-auto p-0 mb-6">
-          <TabsTrigger
-            value="dreams"
-            className="pixel-btn pixel-btn-purple px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-purple data-[state=active]:text-space-dark"
-          >
-            🌙 DREAMS
-          </TabsTrigger>
-          <TabsTrigger
-            value="economic"
-            className="pixel-btn pixel-btn-gold px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-gold data-[state=active]:text-space-dark"
-          >
-            💰 ECONOMIC
-          </TabsTrigger>
-          <TabsTrigger
-            value="wishlist"
-            className="pixel-btn px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-cyan data-[state=active]:text-space-dark"
-          >
-            ⭐ WISHLIST
-          </TabsTrigger>
-          <TabsTrigger
-            value="personal"
-            className="pixel-btn pixel-btn-green px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-green data-[state=active]:text-space-dark"
-          >
-            💪 PERSONAL
-          </TabsTrigger>
-        </TabsList>
+      {/* ===== Goal Section Buttons ===== */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setActiveTab("dreams")}
+          className={`pixel-btn pixel-btn-purple py-3 font-pixel-body text-lg ${activeTab === "dreams" ? "bg-pixel-purple !text-space-dark" : ""}`}
+        >
+          🌙 DREAMS
+        </button>
+        <button
+          onClick={() => setActiveTab("economic")}
+          className={`pixel-btn pixel-btn-gold py-3 font-pixel-body text-lg ${activeTab === "economic" ? "bg-pixel-gold !text-space-dark" : ""}`}
+        >
+          💰 ECONOMIC
+        </button>
+        <button
+          onClick={() => setActiveTab("wishlist")}
+          className={`pixel-btn py-3 font-pixel-body text-lg ${activeTab === "wishlist" ? "bg-pixel-cyan !text-space-dark" : ""}`}
+        >
+          ⭐ WISHLIST
+        </button>
+        <button
+          onClick={() => setActiveTab("personal")}
+          className={`pixel-btn pixel-btn-green py-3 font-pixel-body text-lg ${activeTab === "personal" ? "bg-pixel-green !text-space-dark" : ""}`}
+        >
+          💪 PERSONAL
+        </button>
+      </div>
 
-        {/* ==================== A) LONG-RANGE DREAMS ==================== */}
-        <TabsContent value="dreams">
+      {/* ==================== A) LONG-RANGE DREAMS ==================== */}
+      {activeTab === "dreams" && (
           <section className="flex flex-col gap-4">
             <h3 className="font-pixel text-[10px] text-pixel-purple">
               LONG-RANGE DREAMS
@@ -388,10 +383,10 @@ export default function GoalsPage() {
               </DialogContent>
             </Dialog>
           </section>
-        </TabsContent>
+      )}
 
-        {/* ==================== B) ECONOMIC GOALS ==================== */}
-        <TabsContent value="economic">
+      {/* ==================== B) ECONOMIC GOALS ==================== */}
+      {activeTab === "economic" && (
           <section className="flex flex-col gap-4">
             <h3 className="font-pixel text-[10px] text-pixel-gold">
               ECONOMIC GOALS
@@ -515,10 +510,10 @@ export default function GoalsPage() {
               </DialogContent>
             </Dialog>
           </section>
-        </TabsContent>
+      )}
 
-        {/* ==================== C) THINGS I WANT ==================== */}
-        <TabsContent value="wishlist">
+      {/* ==================== C) THINGS I WANT ==================== */}
+      {activeTab === "wishlist" && (
           <section className="flex flex-col gap-4">
             <h3 className="font-pixel text-[10px] text-pixel-cyan">
               THINGS I WANT
@@ -603,10 +598,10 @@ export default function GoalsPage() {
               </DialogContent>
             </Dialog>
           </section>
-        </TabsContent>
+      )}
 
-        {/* ==================== D) PERSONAL DEVELOPMENT ==================== */}
-        <TabsContent value="personal">
+      {/* ==================== D) PERSONAL DEVELOPMENT ==================== */}
+      {activeTab === "personal" && (
           <section className="flex flex-col gap-4">
             <h3 className="font-pixel text-[10px] text-pixel-green">
               PERSONAL DEVELOPMENT
@@ -792,8 +787,7 @@ export default function GoalsPage() {
               </DialogContent>
             </Dialog>
           </section>
-        </TabsContent>
-      </Tabs>
+      )}
     </div>
   );
 }
