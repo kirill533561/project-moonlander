@@ -11,6 +11,7 @@ const TRACKS = [
   { src: "/music/Above_The_Silver_Glass.mp3", title: "ABOVE THE SILVER GLASS", cover: "/music/Above_The_Silver_Glass.jpg", color: "#7dd3fc", shell: "#1a2a3a", edge: "#0e1a28" },
   { src: "/music/Midnight_Chrome_Run.mp3", title: "MIDNIGHT CHROME RUN", cover: null as string | null, color: "#ff00ff", shell: "#2e1a3a", edge: "#1e0e28" },
   { src: "/music/Neon_Sax_Parade.mp3", title: "NEON SAX PARADE", cover: null as string | null, color: "#00ff88", shell: "#1a3a2a", edge: "#0e281a" },
+  { src: "/music/Moonwalk_Synth.mp3", title: "MOONWALK SYNTH", cover: null as string | null, color: "#00cfff", shell: "#1a2840", edge: "#0e1a2e" },
 ];
 
 const PX = 5;
@@ -405,7 +406,7 @@ export function MusicPlayer() {
                   {/* ── Tape collection ── */}
                   <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">TAPE COLLECTION</p>
                   <div
-                    className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-3"
+                    className="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-3"
                     style={{ perspective: 800, transformStyle: "preserve-3d" }}
                   >
                     {TRACKS.map((t, i) => {
