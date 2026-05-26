@@ -198,17 +198,25 @@ export function MusicPlayer() {
     <>
       <audio ref={audioRef} preload="metadata" />
 
-      <button
-        onClick={() => setOpen(true)}
-        className={`w-9 h-9 border-2 flex items-center justify-center transition-all duration-300 ${
-          playing
-            ? "border-pixel-cyan text-pixel-cyan shadow-[0_0_10px_rgba(0,255,255,0.25)]"
-            : "border-[#2a2a4a] text-gray-500 hover:border-pixel-cyan hover:text-pixel-cyan"
-        }`}
-        title="Mission Audio"
-      >
-        <CassetteIcon playing={playing} />
-      </button>
+      <div className="flex items-center gap-2">
+        {playing && track && !open && (
+          <div className="hidden sm:flex items-center gap-1.5 max-w-[140px]">
+            <div className="w-1.5 h-1.5 bg-pixel-green shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px #00ff41" }} />
+            <p className="font-pixel text-[6px] text-pixel-cyan truncate">{track.title}</p>
+          </div>
+        )}
+        <button
+          onClick={() => setOpen(true)}
+          className={`w-9 h-9 border-2 flex items-center justify-center transition-all duration-300 ${
+            playing
+              ? "border-pixel-cyan text-pixel-cyan shadow-[0_0_10px_rgba(0,255,255,0.25)]"
+              : "border-[#2a2a4a] text-gray-500 hover:border-pixel-cyan hover:text-pixel-cyan"
+          }`}
+          title="Mission Audio"
+        >
+          <CassetteIcon playing={playing} />
+        </button>
+      </div>
 
       {typeof document !== "undefined" &&
         createPortal(
@@ -405,10 +413,7 @@ export function MusicPlayer() {
 
                   {/* ── Tape collection ── */}
                   <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">TAPE COLLECTION</p>
-                  <div
-                    className="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-3"
-                    style={{ perspective: 800, transformStyle: "preserve-3d" }}
-                  >
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-3">
                     {TRACKS.map((t, i) => {
                       const isLoaded = loaded === i;
                       const isInserting = inserting === i;
@@ -429,8 +434,8 @@ export function MusicPlayer() {
                               ? { duration: 0.7, ease: [0.4, 0, 0.2, 1] }
                               : { type: "spring", stiffness: 280, damping: 18 }
                           }
-                          style={{ perspective: 600 }}
-                          className="w-full"
+                          style={{ perspective: 600, isolation: "isolate" }}
+                          className="w-full relative z-0"
                         >
                           <div
                             className="overflow-hidden relative transition-all duration-200"
