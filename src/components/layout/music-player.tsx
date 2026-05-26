@@ -6,12 +6,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { playCassettePickup, playCassetteInsert, playCassetteStart } from "@/lib/sounds";
 
 const TRACKS = [
-  { src: "/music/Final_Approach.mp3", title: "FINAL APPROACH", cover: null as string | null, color: "#00ffff" },
-  { src: "/music/Crossing_the_Far_Perimeter.mp3", title: "CROSSING THE FAR PERIMETER", cover: null as string | null, color: "#b967ff" },
-  { src: "/music/Approaching_the_Far_Side.mp3", title: "APPROACHING THE FAR SIDE", cover: "/music/Approaching_the_Far_Side.jpg", color: "#ffd700" },
-  { src: "/music/Through_The_Asteroid_Belt.mp3", title: "THROUGH THE ASTEROID BELT", cover: "/music/Through_The_Asteroid_Belt.jpg", color: "#ff4444" },
-  { src: "/music/Above_The_Silver_Glass.mp3", title: "ABOVE THE SILVER GLASS", cover: "/music/Above_The_Silver_Glass.jpg", color: "#7dd3fc" },
+  { src: "/music/Final_Approach.mp3", title: "FINAL APPROACH", cover: null as string | null, color: "#00ffff", shell: "#1a2a4a", edge: "#0e1a30" },
+  { src: "/music/Crossing_the_Far_Perimeter.mp3", title: "CROSSING THE FAR PERIMETER", cover: null as string | null, color: "#b967ff", shell: "#2a1a4a", edge: "#1a0e30" },
+  { src: "/music/Approaching_the_Far_Side.mp3", title: "APPROACHING THE FAR SIDE", cover: "/music/Approaching_the_Far_Side.jpg", color: "#ffd700", shell: "#3a2a1a", edge: "#281a0e" },
+  { src: "/music/Through_The_Asteroid_Belt.mp3", title: "THROUGH THE ASTEROID BELT", cover: "/music/Through_The_Asteroid_Belt.jpg", color: "#ff4444", shell: "#3a1a1a", edge: "#280e0e" },
+  { src: "/music/Above_The_Silver_Glass.mp3", title: "ABOVE THE SILVER GLASS", cover: "/music/Above_The_Silver_Glass.jpg", color: "#7dd3fc", shell: "#1a2a3a", edge: "#0e1a28" },
 ];
+
+const PX = 5;
 
 function fmt(s: number) {
   if (!s || !isFinite(s)) return "0:00";
@@ -36,65 +38,51 @@ function CassetteIcon({ playing }: { playing: boolean }) {
   );
 }
 
-function Reel3D({ spinning, size = 56 }: { spinning: boolean; size?: number }) {
-  const spokeCount = 6;
-  const inner = size * 0.35;
+function pixelDepth(color: string, edgeColor: string, px: number) {
+  const layers = [];
+  for (let i = 1; i <= px; i++) {
+    layers.push(`${i}px ${i}px 0 ${i <= px / 2 ? color : edgeColor}`);
+  }
+  return layers.join(", ");
+}
 
+function Reel3D({ spinning, size = 52 }: { spinning: boolean; size?: number }) {
   return (
     <div
       className="relative rounded-full flex items-center justify-center"
       style={{
         width: size,
         height: size,
-        background: "radial-gradient(circle at 40% 35%, #22223a 0%, #14142a 50%, #0a0a1a 100%)",
-        boxShadow: "inset 0 3px 8px rgba(0,0,0,0.9), inset 0 -1px 3px rgba(255,255,255,0.03), 0 2px 4px rgba(0,0,0,0.4)",
+        background: "#0a0a16",
+        border: "3px solid #1a1a30",
+        boxShadow: "inset 0 3px 0 #060610, inset 0 -1px 0 #2a2a4a",
       }}
     >
-      {/* Outer ring groove */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          inset: 3,
-          border: "1px solid rgba(255,255,255,0.04)",
-          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)",
-        }}
-      />
-      {/* Spokes */}
       <div
         className={`absolute rounded-full ${spinning ? "animate-[spin_1.8s_linear_infinite]" : ""}`}
-        style={{ width: inner * 2, height: inner * 2 }}
+        style={{ width: size * 0.65, height: size * 0.65 }}
       >
-        {Array.from({ length: spokeCount }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
             className="absolute top-1/2 left-1/2 h-px"
             style={{
-              width: inner,
+              width: size * 0.32,
               transformOrigin: "0 0",
-              transform: `rotate(${(360 / spokeCount) * i}deg)`,
-              background: "linear-gradient(90deg, rgba(100,100,140,0.6), rgba(100,100,140,0.1))",
+              transform: `rotate(${60 * i}deg)`,
+              background: "#2a2a4a",
             }}
           />
         ))}
       </div>
-      {/* Center hub */}
       <div
         className="relative z-10 rounded-full"
         style={{
-          width: size * 0.22,
-          height: size * 0.22,
-          background: "radial-gradient(circle at 40% 35%, #3a3a5a, #1a1a2e 60%, #0a0a1a)",
-          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)",
-          border: "1px solid #2a2a4a",
-        }}
-      />
-      {/* Mid ring */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: inner * 1.5,
-          height: inner * 1.5,
-          border: "1px solid rgba(100,100,140,0.15)",
+          width: size * 0.24,
+          height: size * 0.24,
+          background: "#14142a",
+          border: "2px solid #2a2a4a",
+          boxShadow: "inset 0 1px 0 #060610",
         }}
       />
     </div>
@@ -107,23 +95,15 @@ function CassetteLabel({ track }: { track: (typeof TRACKS)[number] }) {
   }
   return (
     <div
-      className="w-full h-full flex items-center justify-center p-3 relative overflow-hidden"
-      style={{ background: `linear-gradient(145deg, ${track.color}12, #0a0a1a 50%, ${track.color}08)` }}
+      className="w-full h-full flex items-center justify-center p-2 relative overflow-hidden"
+      style={{ background: `linear-gradient(145deg, ${track.color}15, #0a0a1a 50%, ${track.color}08)` }}
     >
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 3px)" }}
-      />
-      <span className="font-pixel text-[6px] md:text-[7px] leading-relaxed text-center relative z-10" style={{ color: track.color }}>
+      <span className="font-pixel text-[5px] md:text-[6px] leading-relaxed text-center" style={{ color: track.color }}>
         {track.title}
       </span>
     </div>
   );
 }
-
-const DEPTH_SHADOW = "0 1px 0 #1c1c3a, 0 2px 0 #181830, 0 3px 0 #141428, 0 4px 0 #101020, 0 5px 0 #0c0c18, 0 6px 0 #0a0a14, 0 14px 28px rgba(0,0,0,0.6)";
-const DEPTH_SHADOW_ACTIVE = (c: string) =>
-  `0 1px 0 #1c1c3a, 0 2px 0 #181830, 0 3px 0 #141428, 0 4px 0 #101020, 0 5px 0 #0c0c18, 0 6px 0 #0a0a14, 0 14px 28px rgba(0,0,0,0.6), 0 0 20px ${c}20`;
 
 export function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -165,18 +145,13 @@ export function MusicPlayer() {
   );
 
   const next = useCallback(() => {
-    const i = loaded !== null ? (loaded + 1) % TRACKS.length : 0;
-    insertCassette(i);
+    insertCassette(loaded !== null ? (loaded + 1) % TRACKS.length : 0);
   }, [loaded, insertCassette]);
 
   const prev = useCallback(() => {
     const a = audioRef.current;
-    if (a && a.currentTime > 3) {
-      a.currentTime = 0;
-      return;
-    }
-    const i = loaded !== null ? (loaded - 1 + TRACKS.length) % TRACKS.length : TRACKS.length - 1;
-    insertCassette(i);
+    if (a && a.currentTime > 3) { a.currentTime = 0; return; }
+    insertCassette(loaded !== null ? (loaded - 1 + TRACKS.length) % TRACKS.length : TRACKS.length - 1);
   }, [loaded, insertCassette]);
 
   useEffect(() => {
@@ -192,10 +167,7 @@ export function MusicPlayer() {
     if (!a) return;
     const onTime = () => setProgress(a.currentTime);
     const onDur = () => setDuration(a.duration);
-    const onEnd = () => {
-      const i = loaded !== null ? (loaded + 1) % TRACKS.length : 0;
-      setLoaded(i);
-    };
+    const onEnd = () => { setLoaded(loaded !== null ? (loaded + 1) % TRACKS.length : 0); };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     a.addEventListener("timeupdate", onTime);
@@ -225,7 +197,6 @@ export function MusicPlayer() {
     <>
       <audio ref={audioRef} preload="metadata" />
 
-      {/* Header trigger */}
       <button
         onClick={() => setOpen(true)}
         className={`w-9 h-9 border-2 flex items-center justify-center transition-all duration-300 ${
@@ -238,7 +209,6 @@ export function MusicPlayer() {
         <CassetteIcon playing={playing} />
       </button>
 
-      {/* Modal — portaled to body */}
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
@@ -247,111 +217,92 @@ export function MusicPlayer() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.25 }}
                 className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 md:p-6 md:items-center"
               >
-                <div className="fixed inset-0 bg-black/85 backdrop-blur-md" onClick={() => setOpen(false)} />
+                <div className="fixed inset-0 bg-black/88 backdrop-blur-md" onClick={() => setOpen(false)} />
 
                 <motion.div
-                  initial={{ scale: 0.85, y: 30, rotateX: 10 }}
-                  animate={{ scale: 1, y: 0, rotateX: 0 }}
-                  exit={{ scale: 0.85, y: 30, opacity: 0 }}
-                  transition={{ type: "spring", damping: 22, stiffness: 280 }}
+                  initial={{ scale: 0.88, y: 24 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.88, y: 24, opacity: 0 }}
+                  transition={{ type: "spring", damping: 24, stiffness: 300 }}
                   className="relative z-10 w-full max-w-2xl my-4"
-                  style={{ perspective: 1200 }}
                 >
                   {/* Close */}
                   <button
                     onClick={() => setOpen(false)}
-                    className="absolute -top-3 -right-3 w-8 h-8 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-gray-400 hover:text-white hover:border-pixel-red flex items-center justify-center font-pixel-body text-lg z-20 transition-colors"
-                    style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
+                    className="absolute -top-2 -right-2 w-8 h-8 bg-[#1a1a3a] border-2 border-[#3a3a5a] text-gray-400 hover:text-white hover:border-pixel-red flex items-center justify-center font-pixel-body text-lg z-20 transition-colors"
+                    style={{ boxShadow: `${pixelDepth("#12122a", "#0a0a1a", 3)}` }}
                   >
                     ×
                   </button>
 
-                  {/* ── 3D Recorder body ── */}
+                  {/* ── Recorder ── */}
                   <div
-                    className="relative overflow-hidden"
+                    className="relative overflow-visible"
                     style={{
-                      background: "linear-gradient(180deg, #222244 0%, #1a1a36 8%, #14142a 40%, #10102a 100%)",
-                      border: "2px solid #33335a",
-                      borderBottom: "2px solid #1a1a30",
-                      boxShadow: `
-                        0 1px 0 rgba(255,255,255,0.06) inset,
-                        0 -1px 0 #0a0a1a inset,
-                        0 2px 0 #1a1a30,
-                        0 4px 0 #14142a,
-                        0 6px 0 #0e0e20,
-                        0 24px 60px rgba(0,0,0,0.7)
-                      `,
+                      background: "linear-gradient(180deg, #222246 0%, #1c1c3a 50%, #161630 100%)",
+                      border: "3px solid #33335a",
+                      borderBottom: "3px solid #1a1a30",
+                      borderRight: "3px solid #1a1a30",
+                      boxShadow: pixelDepth("#161630", "#0a0a1a", PX + 2),
                     }}
                   >
-                    {/* Top highlight bevel */}
-                    <div
-                      className="absolute top-0 inset-x-0 h-px"
-                      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.08) 70%, transparent)" }}
-                    />
+                    {/* Top highlight */}
+                    <div className="absolute top-0 inset-x-0 h-[2px] bg-[#2e2e5a]" />
+                    <div className="absolute left-0 inset-y-0 w-[2px] bg-[#2a2a50]" />
 
-                    {/* Brand label */}
+                    {/* Brand */}
                     <div className="flex items-center justify-between px-5 pt-3 pb-2">
                       <p className="font-pixel text-[7px] text-gray-500 tracking-[0.25em]">MOONLANDER</p>
                       <div className="flex items-center gap-2">
                         <div
-                          className={`w-2 h-2 rounded-full transition-all duration-300 ${playing ? "bg-pixel-green" : "bg-gray-700"}`}
+                          className={`w-2 h-2 ${playing ? "bg-pixel-green" : "bg-gray-700"}`}
                           style={playing ? { boxShadow: "0 0 6px #00ff41, 0 0 12px #00ff4140" } : {}}
                         />
                         <p className="font-pixel text-[6px] text-gray-600">{playing ? "PLAY" : "STOP"}</p>
                       </div>
                     </div>
 
-                    {/* 3D Tape window */}
+                    {/* Tape window — recessed */}
                     <div
                       className="mx-4 mb-3 p-5 relative overflow-hidden"
                       style={{
-                        background: "linear-gradient(180deg, #060610 0%, #0a0a1a 30%, #0c0c1e 100%)",
-                        border: "2px solid #1a1a30",
-                        boxShadow: `
-                          inset 0 6px 20px rgba(0,0,0,0.95),
-                          inset 0 -2px 8px rgba(0,0,0,0.5),
-                          inset 2px 0 8px rgba(0,0,0,0.4),
-                          inset -2px 0 8px rgba(0,0,0,0.4),
-                          0 1px 0 rgba(255,255,255,0.04)
-                        `,
+                        background: "#060610",
+                        border: "3px solid #0a0a1a",
+                        borderTop: "3px solid #040408",
+                        borderLeft: "3px solid #040408",
+                        boxShadow: `inset 2px 2px 0 #020206, inset -1px -1px 0 #1a1a30`,
                       }}
                     >
-                      <div className="flex items-center justify-center gap-6 md:gap-10">
-                        <Reel3D spinning={playing} size={56} />
-                        <div className="flex-1 max-w-[90px] flex flex-col gap-1.5 py-1">
-                          {[0.5, 0.35, 0.5, 0.3, 0.45].map((o, i) => (
-                            <div key={i} className="h-px rounded" style={{ backgroundColor: `rgba(139, 90, 43, ${o})` }} />
+                      <div className="flex items-center justify-center gap-5 md:gap-8">
+                        <Reel3D spinning={playing} />
+                        <div className="flex-1 max-w-[90px] flex flex-col gap-2 py-1">
+                          {[1, 0.6, 1, 0.5, 0.8].map((o, i) => (
+                            <div key={i} className="h-px" style={{ background: `rgba(139, 90, 43, ${o * 0.5})` }} />
                           ))}
                         </div>
-                        <Reel3D spinning={playing} size={56} />
+                        <Reel3D spinning={playing} />
                       </div>
 
                       {track && (
                         <motion.div
                           key={loaded}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 0.65, y: 0 }}
-                          transition={{ delay: 0.15, duration: 0.4 }}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 0.7, y: 0 }}
+                          transition={{ delay: 0.15 }}
                           className="mt-3 mx-auto w-40 h-10 overflow-hidden"
-                          style={{
-                            border: `1px solid ${track.color}30`,
-                            boxShadow: `inset 0 1px 4px rgba(0,0,0,0.6), 0 0 8px ${track.color}10`,
-                          }}
+                          style={{ border: `2px solid ${track.color}30` }}
                         >
                           <CassetteLabel track={track} />
                         </motion.div>
                       )}
 
                       {!track && inserting === null && (
-                        <p className="font-pixel text-[6px] text-gray-600 text-center mt-4 tracking-wider animate-pulse">
-                          INSERT TAPE
-                        </p>
+                        <p className="font-pixel text-[6px] text-gray-600 text-center mt-4 tracking-wider animate-pulse">INSERT TAPE</p>
                       )}
 
-                      {/* Insertion animation */}
                       <AnimatePresence>
                         {inserting !== null && (
                           <motion.div
@@ -365,21 +316,17 @@ export function MusicPlayer() {
                             <div
                               className="w-32 h-20 overflow-hidden"
                               style={{
-                                border: `2px solid ${TRACKS[inserting].color}70`,
-                                background: "linear-gradient(180deg, #1a1a3a, #10102a)",
-                                boxShadow: `0 0 24px ${TRACKS[inserting].color}30, ${DEPTH_SHADOW}`,
+                                background: TRACKS[inserting].shell,
+                                border: `3px solid ${TRACKS[inserting].color}50`,
+                                boxShadow: pixelDepth(TRACKS[inserting].edge, "#0a0a0a", 4),
                               }}
                             >
-                              <div className="w-full h-12 overflow-hidden border-b border-[#2a2a4a]">
+                              <div className="w-full h-12 overflow-hidden border-b-2 border-black/30">
                                 <CassetteLabel track={TRACKS[inserting]} />
                               </div>
-                              <div className="flex items-center justify-between px-6 py-1.5">
-                                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-500 flex items-center justify-center">
-                                  <div className="w-1 h-1 rounded-full bg-gray-600" />
-                                </div>
-                                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-500 flex items-center justify-center">
-                                  <div className="w-1 h-1 rounded-full bg-gray-600" />
-                                </div>
+                              <div className="flex items-center justify-between px-6 py-1">
+                                <div className="w-3 h-3 rounded-full border-2 border-gray-600 bg-[#0a0a16]" />
+                                <div className="w-3 h-3 rounded-full border-2 border-gray-600 bg-[#0a0a16]" />
                               </div>
                             </div>
                           </motion.div>
@@ -394,30 +341,27 @@ export function MusicPlayer() {
                       </p>
                     </div>
 
-                    {/* Progress bar */}
+                    {/* Progress bar — pixel style */}
                     <div className="px-5 mb-3">
                       <div
                         onClick={seek}
-                        className="h-3 cursor-pointer group relative overflow-hidden"
+                        className="h-3.5 cursor-pointer group relative overflow-hidden"
                         style={{
-                          background: "#08081a",
-                          border: "1px solid #1a1a30",
-                          boxShadow: "inset 0 2px 6px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.03)",
+                          background: "#060610",
+                          border: "2px solid #0a0a1a",
+                          borderTop: "2px solid #040408",
+                          borderLeft: "2px solid #040408",
+                          boxShadow: "inset 2px 2px 0 #020206, inset -1px -1px 0 #1a1a30",
                         }}
                       >
-                        <motion.div
-                          className="h-full relative"
+                        <div
+                          className="h-full transition-[width] duration-150"
                           style={{
                             width: `${pct}%`,
-                            background: track
-                              ? `linear-gradient(90deg, ${track.color}80, ${track.color})`
-                              : "#00ffff",
-                            boxShadow: track ? `0 0 10px ${track.color}50` : undefined,
+                            background: track ? track.color : "#00ffff",
+                            boxShadow: track ? `inset 0 -2px 0 ${track.color}60, 0 0 6px ${track.color}30` : undefined,
                           }}
-                          transition={{ duration: 0.1 }}
-                        >
-                          <div className="absolute right-0 top-0 w-px h-full bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </motion.div>
+                        />
                       </div>
                       <div className="flex justify-between mt-1">
                         <span className="font-pixel-body text-[11px] text-gray-500">{fmt(progress)}</span>
@@ -425,7 +369,7 @@ export function MusicPlayer() {
                       </div>
                     </div>
 
-                    {/* 3D Transport controls */}
+                    {/* Transport buttons — pixel 3D */}
                     <div className="flex items-center justify-center gap-3 px-5 pb-5">
                       {([
                         { label: "⏮", action: prev, size: "w-11 h-11 text-base" },
@@ -436,34 +380,29 @@ export function MusicPlayer() {
                           key={i}
                           onClick={btn.action}
                           disabled={loaded === null}
-                          whileTap={{ y: 3 }}
-                          className={`${btn.size} border-2 flex items-center justify-center font-pixel-body transition-colors disabled:opacity-25 disabled:cursor-not-allowed ${
+                          whileTap={{ y: PX - 1 }}
+                          className={`${btn.size} flex items-center justify-center font-pixel-body transition-colors disabled:opacity-25 disabled:cursor-not-allowed ${
                             i === 1 && playing
-                              ? "border-pixel-cyan text-pixel-cyan"
-                              : "border-[#3a3a5a] text-gray-400 hover:border-pixel-cyan hover:text-pixel-cyan"
+                              ? "text-pixel-cyan"
+                              : "text-gray-400 hover:text-pixel-cyan"
                           }`}
                           style={{
-                            background: "linear-gradient(180deg, #222244 0%, #1a1a36 40%, #14142a 100%)",
-                            boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset, 0 2px 0 #12122a, 0 3px 0 #0e0e20, 0 4px 0 #0a0a18, 0 6px 14px rgba(0,0,0,0.5)",
+                            background: "linear-gradient(180deg, #2a2a50, #1e1e3a)",
+                            border: "2px solid #3a3a5a",
+                            borderBottom: "2px solid #1a1a30",
+                            borderRight: "2px solid #1a1a30",
+                            boxShadow: pixelDepth("#161630", "#0a0a1a", PX - 1),
                           }}
                         >
                           {btn.label}
                         </motion.button>
                       ))}
                     </div>
-
-                    {/* Bottom edge bevel */}
-                    <div
-                      className="absolute bottom-0 inset-x-0 h-px"
-                      style={{ background: "linear-gradient(90deg, transparent, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.3) 70%, transparent)" }}
-                    />
                   </div>
 
-                  {/* ── 3D Tape collection ── */}
-                  <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">
-                    TAPE COLLECTION
-                  </p>
-                  <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                  {/* ── Tape collection ── */}
+                  <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">TAPE COLLECTION</p>
+                  <div className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-3">
                     {TRACKS.map((t, i) => {
                       const isLoaded = loaded === i;
                       const isInserting = inserting === i;
@@ -472,63 +411,64 @@ export function MusicPlayer() {
                         <motion.button
                           key={i}
                           onClick={() => insertCassette(i)}
-                          whileHover={!isInserting ? { y: -8, rotateX: -5, rotateY: 4, scale: 1.03 } : undefined}
-                          whileTap={!isInserting ? { scale: 0.95, y: 0 } : undefined}
+                          whileHover={!isInserting ? { y: -8, scale: 1.04 } : undefined}
+                          whileTap={!isInserting ? { y: 0, scale: 0.97 } : undefined}
                           animate={
                             isInserting
                               ? { y: -70, rotateX: 45, scale: 0.4, opacity: 0 }
-                              : { y: 0, rotateX: 6, rotateY: 0, scale: 1, opacity: 1 }
+                              : { y: 0, rotateX: 0, scale: 1, opacity: 1 }
                           }
                           transition={
                             isInserting
                               ? { duration: 0.7, ease: [0.4, 0, 0.2, 1] }
-                              : { type: "spring", stiffness: 260, damping: 18 }
+                              : { type: "spring", stiffness: 280, damping: 18 }
                           }
-                          style={{ perspective: 600, transformStyle: "preserve-3d" }}
+                          style={{ perspective: 600 }}
                           className="w-full"
                         >
                           <div
-                            className="overflow-hidden transition-shadow duration-300 relative"
+                            className="overflow-hidden relative transition-all duration-200"
                             style={{
-                              background: "linear-gradient(180deg, #1e1e40 0%, #18183a 30%, #10102a 100%)",
-                              border: `2px solid ${isLoaded ? t.color : "#2a2a4a"}`,
-                              borderBottom: `2px solid ${isLoaded ? t.color + "80" : "#1a1a30"}`,
-                              boxShadow: isLoaded ? DEPTH_SHADOW_ACTIVE(t.color) : DEPTH_SHADOW,
+                              background: isLoaded
+                                ? `linear-gradient(180deg, ${t.shell}, ${t.edge})`
+                                : `linear-gradient(180deg, ${t.shell}, ${t.edge})`,
+                              border: `3px solid ${isLoaded ? t.color : t.color + "40"}`,
+                              borderBottom: `3px solid ${isLoaded ? t.color + "80" : t.edge}`,
+                              borderRight: `3px solid ${isLoaded ? t.color + "80" : t.edge}`,
+                              boxShadow: isLoaded
+                                ? `${pixelDepth(t.edge, "#0a0a0a", PX)}, 0 0 16px ${t.color}30`
+                                : pixelDepth(t.edge, "#0a0a0a", PX),
                             }}
                           >
                             {/* Top highlight */}
-                            <div
-                              className="absolute top-0 inset-x-0 h-px z-10"
-                              style={{
-                                background: isLoaded
-                                  ? `linear-gradient(90deg, transparent, ${t.color}30, transparent)`
-                                  : "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
-                              }}
-                            />
+                            <div className="absolute top-0 inset-x-0 h-[2px] z-10" style={{ background: `${t.color}18` }} />
+                            <div className="absolute left-0 inset-y-0 w-[2px] z-10" style={{ background: `${t.color}10` }} />
 
-                            {/* Cover art label */}
+                            {/* Corner screws */}
+                            <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-black/30 z-10" />
+                            <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-black/30 z-10" />
+
+                            {/* Cover art / label — recessed */}
                             <div
-                              className="w-full h-16 md:h-20 border-b overflow-hidden relative"
+                              className="w-full h-14 md:h-[70px] overflow-hidden relative"
                               style={{
-                                borderColor: isLoaded ? `${t.color}30` : "#2a2a4a",
-                                boxShadow: "inset 0 2px 8px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(0,0,0,0.3)",
+                                borderBottom: `2px solid ${t.edge}`,
+                                boxShadow: "inset 2px 2px 0 rgba(0,0,0,0.3), inset -1px -1px 0 rgba(255,255,255,0.03)",
                               }}
                             >
                               <CassetteLabel track={t} />
                               {isLoaded && (
-                                <div
-                                  className="absolute inset-0 pointer-events-none"
-                                  style={{ boxShadow: `inset 0 0 24px ${t.color}20` }}
-                                />
+                                <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: `inset 0 0 20px ${t.color}25` }} />
                               )}
                             </div>
 
-                            {/* Tape reels */}
+                            {/* Tape reels section */}
                             <div
-                              className="flex items-center justify-between px-3 md:px-4 py-2 relative"
+                              className="flex items-center justify-between px-2.5 md:px-3.5 py-2 relative"
                               style={{
-                                background: "linear-gradient(180deg, #0c0c20 0%, #08081a 100%)",
-                                boxShadow: "inset 0 2px 4px rgba(0,0,0,0.4)",
+                                background: "#060610",
+                                borderTop: "2px solid #040408",
+                                boxShadow: "inset 1px 1px 0 #020206",
                               }}
                             >
                               {[0, 1].map((r) => (
@@ -536,30 +476,33 @@ export function MusicPlayer() {
                                   key={r}
                                   className={`w-4 h-4 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center ${isLoaded ? "animate-[spin_2s_linear_infinite]" : ""}`}
                                   style={{
-                                    borderColor: isLoaded ? t.color : "#3a3a5a",
-                                    boxShadow: isLoaded
-                                      ? `inset 0 1px 2px rgba(0,0,0,0.5), 0 0 6px ${t.color}30`
-                                      : "inset 0 1px 2px rgba(0,0,0,0.5)",
+                                    borderColor: isLoaded ? t.color : "#2a2a4a",
+                                    background: "#0a0a16",
                                   }}
                                 >
-                                  <div
-                                    className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full"
-                                    style={{ backgroundColor: isLoaded ? t.color : "#3a3a5a" }}
-                                  />
+                                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full" style={{ background: isLoaded ? t.color : "#2a2a4a" }} />
                                 </div>
                               ))}
-                              <div className="absolute inset-x-7 md:inset-x-8 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-700/40" />
+                              {/* Tape between reels */}
+                              <div className="absolute inset-x-6 md:inset-x-7 top-1/2 -translate-y-1/2">
+                                <div className="h-2 md:h-2.5 border border-[#1a1a30] bg-[#0a0a16] flex items-center justify-center overflow-hidden">
+                                  <div className="w-full h-full" style={{
+                                    backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 2px, rgba(139,90,43,0.15) 2px, rgba(139,90,43,0.15) 3px)",
+                                  }} />
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Title */}
-                            <div className="px-1.5 py-1 border-t border-[#1a1a30]">
-                              <p
-                                className="font-pixel text-[4.5px] md:text-[5.5px] truncate text-center transition-colors"
-                                style={{ color: isLoaded ? t.color : "#6b7280" }}
-                              >
+                            {/* Title strip */}
+                            <div className="px-1.5 py-1" style={{ borderTop: `1px solid ${t.color}15` }}>
+                              <p className="font-pixel text-[4px] md:text-[5px] truncate text-center" style={{ color: isLoaded ? t.color : "#6b7280" }}>
                                 {t.title}
                               </p>
                             </div>
+
+                            {/* Bottom corner screws */}
+                            <div className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-black/20" />
+                            <div className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-black/20" />
                           </div>
                         </motion.button>
                       );
