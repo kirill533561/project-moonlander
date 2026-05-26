@@ -283,46 +283,121 @@
 }
 
 /* 8-bit Pixel Moon — built from box-shadows */
+/* Big 8-bit pixel moon (6px grid, ~10x10 pixels = 60px) */
 .star-field::before {
   content: "";
   position: fixed;
-  top: 6%;
-  right: 10%;
-  width: 4px;
-  height: 4px;
+  top: 4%;
+  right: 6%;
+  width: 6px;
+  height: 6px;
   background: #ffd700;
   pointer-events: none;
   box-shadow:
-    /* Moon body — 8x8 pixel circle */
-    4px 0 0 #ffd700,  8px 0 0 #ffd700,
-    0px 4px 0 #ffd700,  4px 4px 0 #ffd700,  8px 4px 0 #ffd700,  12px 4px 0 #ffd700,
-    -4px 8px 0 #ffd700,  0px 8px 0 #ffd700,  4px 8px 0 #ffd700,  8px 8px 0 #ffd700,  12px 8px 0 #ffd700,  16px 8px 0 #ffd700,
-    -4px 12px 0 #ffd700,  0px 12px 0 #ffd700,  4px 12px 0 #ffed4a,  8px 12px 0 #ffed4a,  12px 12px 0 #ffd700,  16px 12px 0 #ffd700,
-    -4px 16px 0 #ffd700,  0px 16px 0 #ffd700,  4px 16px 0 #ffd700,  8px 16px 0 #ffed4a,  12px 16px 0 #ffd700,  16px 16px 0 #ffd700,
-    -4px 20px 0 #ffd700,  0px 20px 0 #ffd700,  4px 20px 0 #ffd700,  8px 20px 0 #ffd700,  12px 20px 0 #ffd700,  16px 20px 0 #ffd700,
-    0px 24px 0 #ffd700,  4px 24px 0 #ffd700,  8px 24px 0 #ffd700,  12px 24px 0 #ffd700,
-    4px 28px 0 #ffd700,  8px 28px 0 #ffd700,
-    /* Inner glow ring */
-    -4px 4px 0 2px #ffd70044,  16px 0px 0 2px #ffd70044,
-    -8px 12px 0 2px #ffd70033,  20px 12px 0 2px #ffd70033,
-    -4px 24px 0 2px #ffd70044,  16px 24px 0 2px #ffd70044,
-    4px 32px 0 2px #ffd70033,  8px 32px 0 2px #ffd70033,
-    /* Outer glow halo */
-    -8px 0px 0 4px #ffd70011,  20px 0px 0 4px #ffd70011,
-    -12px 8px 0 6px #ffd70011,  24px 8px 0 6px #ffd70011,
-    -12px 16px 0 6px #ffd70011,  24px 16px 0 6px #ffd70011,
-    -8px 28px 0 4px #ffd70011,  20px 28px 0 4px #ffd70011,
-    4px -8px 0 4px #ffd70011,  8px -8px 0 4px #ffd70011,
-    4px 36px 0 4px #ffd70011,  8px 36px 0 4px #ffd70011;
+    /* Row 0 */                    6px 0 0 #ffd700, 12px 0 0 #ffd700, 18px 0 0 #ffd700, 24px 0 0 #ffd700,
+    /* Row 1 */  -6px 6px 0 #ffd700, 0px 6px 0 #ffd700, 6px 6px 0 #ffed4a, 12px 6px 0 #ffed4a, 18px 6px 0 #ffd700, 24px 6px 0 #ffd700, 30px 6px 0 #ffd700,
+    /* Row 2 */ -6px 12px 0 #ffd700, 0px 12px 0 #ffd700, 6px 12px 0 #ffd700, 12px 12px 0 #ffed4a, 18px 12px 0 #ffed4a, 24px 12px 0 #ffd700, 30px 12px 0 #ffd700, 36px 12px 0 #ffd700,
+    /* Row 3 */ -12px 18px 0 #ffd700, -6px 18px 0 #ffd700, 0px 18px 0 #ffd700, 6px 18px 0 #ffd700, 12px 18px 0 #ffd700, 18px 18px 0 #ffed4a, 24px 18px 0 #ffd700, 30px 18px 0 #ffd700, 36px 18px 0 #ffd700, 42px 18px 0 #ffd700,
+    /* Row 4 */ -12px 24px 0 #ffd700, -6px 24px 0 #ffd700, 0px 24px 0 #ffed4a, 6px 24px 0 #ffd700, 12px 24px 0 #ffd700, 18px 24px 0 #ffd700, 24px 24px 0 #ffd700, 30px 24px 0 #ffed4a, 36px 24px 0 #ffd700, 42px 24px 0 #ffd700,
+    /* Row 5 */ -12px 30px 0 #ffd700, -6px 30px 0 #ffd700, 0px 30px 0 #ffd700, 6px 30px 0 #ffd700, 12px 30px 0 #ffed4a, 18px 30px 0 #ffd700, 24px 30px 0 #ffd700, 30px 30px 0 #ffd700, 36px 30px 0 #ffd700, 42px 30px 0 #ffd700,
+    /* Row 6 */ -12px 36px 0 #ffd700, -6px 36px 0 #ffd700, 0px 36px 0 #ffd700, 6px 36px 0 #ffd700, 12px 36px 0 #ffd700, 18px 36px 0 #ffd700, 24px 36px 0 #ffed4a, 30px 36px 0 #ffd700, 36px 36px 0 #ffd700, 42px 36px 0 #ffd700,
+    /* Row 7 */  -6px 42px 0 #ffd700, 0px 42px 0 #ffd700, 6px 42px 0 #ffd700, 12px 42px 0 #ffd700, 18px 42px 0 #ffd700, 24px 42px 0 #ffd700, 30px 42px 0 #ffd700, 36px 42px 0 #ffd700,
+    /* Row 8 */  -6px 48px 0 #ffd700, 0px 48px 0 #ffd700, 6px 48px 0 #ffed4a, 12px 48px 0 #ffd700, 18px 48px 0 #ffd700, 24px 48px 0 #ffd700, 30px 48px 0 #ffd700,
+    /* Row 9 */                      6px 54px 0 #ffd700, 12px 54px 0 #ffd700, 18px 54px 0 #ffd700, 24px 54px 0 #ffd700;
   animation: moon-shine 3s ease-in-out infinite alternate;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 12px #ffd70044) drop-shadow(0 0 30px #ffd70022);
+  filter: drop-shadow(0 0 20px #ffd70055) drop-shadow(0 0 50px #ffd70033) drop-shadow(0 0 80px #ffd70018);
 }
 
 @keyframes pixel-twinkle {
   0% { opacity: 0.6; }
   50% { opacity: 0.85; }
   100% { opacity: 1; }
+}
+
+/* 8-bit pixel rocket + astronaut flying toward the moon */
+.pixel-rocket {
+  position: fixed;
+  top: 12%;
+  right: 18%;
+  width: 5px;
+  height: 5px;
+  pointer-events: none;
+  z-index: 0;
+  image-rendering: pixelated;
+  animation: rocket-drift 8s ease-in-out infinite alternate;
+}
+
+.pixel-rocket::before {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: #e0e0e0;
+  /* Rocket body pointing top-right */
+  box-shadow:
+    /* Nose cone */
+    10px -15px 0 #ff4444,
+    10px -10px 0 #ff4444,  15px -10px 0 #ff4444,
+    /* Body */
+    5px -5px 0 #e0e0e0,  10px -5px 0 #e0e0e0,  15px -5px 0 #e0e0e0,  20px -5px 0 #e0e0e0,
+    5px 0px 0 #c0c0c0,  10px 0px 0 #e0e0e0,  15px 0px 0 #e0e0e0,  20px 0px 0 #c0c0c0,
+    5px 5px 0 #c0c0c0,  10px 5px 0 #e0e0e0,  15px 5px 0 #e0e0e0,  20px 5px 0 #c0c0c0,
+    /* Window */
+    12px 0px 0 #00ffff,
+    /* Fins */
+    0px 10px 0 #ff4444,  5px 10px 0 #ff4444,
+    25px 10px 0 #ff4444,  20px 10px 0 #ff4444,
+    /* Exhaust flames */
+    10px 10px 0 #ffd700,  15px 10px 0 #ffd700,
+    8px 15px 0 #ff8844,  12px 15px 0 #ffd700,  17px 15px 0 #ff8844,
+    10px 20px 0 #ff444488,  15px 20px 0 #ff444488;
+  animation: exhaust-flicker 0.3s steps(2) infinite alternate;
+}
+
+/* Astronaut floating next to rocket */
+.pixel-rocket::after {
+  content: "";
+  position: absolute;
+  left: -25px;
+  top: -8px;
+  width: 4px;
+  height: 4px;
+  background: #e0e0e0;
+  box-shadow:
+    /* Helmet */
+    0px -4px 0 #e0e0e0,  4px -4px 0 #e0e0e0,
+    -4px 0px 0 #e0e0e0,  0px 0px 0 #4488ff,  4px 0px 0 #4488ff,  8px 0px 0 #e0e0e0,
+    0px 4px 0 #e0e0e0,  4px 4px 0 #e0e0e0,
+    /* Body */
+    0px 8px 0 #e0e0e0,  4px 8px 0 #e0e0e0,
+    0px 12px 0 #e0e0e0,  4px 12px 0 #e0e0e0,
+    /* Arms */
+    -4px 8px 0 #e0e0e0,  8px 8px 0 #e0e0e0,
+    /* Legs */
+    -4px 16px 0 #e0e0e0,  8px 16px 0 #e0e0e0,
+    /* Jetpack */
+    -4px 12px 0 #888,  8px 12px 0 #888,
+    /* Jetpack flame */
+    -4px 16px 0 #00ffff44,  0px 20px 0 #00ffff33;
+  animation: astronaut-float 3s ease-in-out infinite alternate;
+}
+
+@keyframes rocket-drift {
+  0% { transform: translate(0, 0) rotate(-25deg); }
+  50% { transform: translate(-8px, -6px) rotate(-22deg); }
+  100% { transform: translate(4px, 3px) rotate(-28deg); }
+}
+
+@keyframes exhaust-flicker {
+  0% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes astronaut-float {
+  0% { transform: translate(0, 0) rotate(5deg); }
+  50% { transform: translate(-3px, -5px) rotate(-3deg); }
+  100% { transform: translate(2px, 3px) rotate(8deg); }
 }
 
 @keyframes moon-shine {

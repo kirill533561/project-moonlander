@@ -16,6 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="pixel-sparkle pixel-sparkle-4" />
         <div className="pixel-sparkle pixel-sparkle-5" />
         <div className="pixel-sparkle pixel-sparkle-6" />
+        <div className="pixel-rocket" />
         <ShootingStar />
         <SidebarNav />
         <div className="md:ml-56 flex flex-col min-h-screen relative z-10">
