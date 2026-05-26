@@ -13,6 +13,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
+import { RangeSlider } from "@/components/range-slider";
 
 interface CounterGoal {
   id: string;
@@ -36,10 +37,10 @@ export default function DashboardPage() {
   const [financeData] = useLocalStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
   const [financeVars] = useLocalStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
 
-  // Zoom states for charts
-  const [yearlyZoom, setYearlyZoom] = useState<"all" | "3y" | "1y">("all");
-  const [monthlyYear, setMonthlyYear] = useState(new Date().getFullYear());
-  const [cashFlowYear, setCashFlowYear] = useState(new Date().getFullYear());
+  // Global date range (as month index: year*12+month)
+  const [rangeMin, setRangeMin] = useState(0);
+  const [rangeMax, setRangeMax] = useState(0);
+  const [rangeInit, setRangeInit] = useState(false);
 
   const demoCountersTyped: CounterGoal[] = DEMO_COUNTERS;
   const activeCounters = demoMode ? demoCountersTyped : counters;
@@ -66,6 +67,29 @@ export default function DashboardPage() {
     }
 
     const allYears = Object.keys(financeData).map(Number).sort();
+
+    // Build full monthly timeline (for range slider)
+    const allMonthsFlat: { idx: number; year: number; month: number; salary: number; expenses: number; net: number }[] = [];
+    for (const yr of allYears) {
+      const yd = financeData[yr];
+      if (!yd) continue;
+      for (let m = 0; m < 12; m++) {
+        const md = yd[m];
+        if (!md) continue;
+        let salary = 0, expenses = 0;
+        for (const [varId, fields] of Object.entries(md)) {
+          const v = financeVars.find((fv) => fv.id === varId);
+          if (!v) continue;
+          if (v.type === "income_source") salary += fields.amount ?? 0;
+          else if (v.type === "expense_category") expenses += fields.amount ?? 0;
+        }
+        if (salary > 0 || expenses > 0) {
+          allMonthsFlat.push({ idx: yr * 12 + m, year: yr, month: m, salary: Math.round(salary), expenses: Math.round(expenses), net: Math.round(salary - expenses) });
+        }
+      }
+    }
+    const minIdx = allMonthsFlat.length > 0 ? allMonthsFlat[0].idx : 0;
+    const maxIdx = allMonthsFlat.length > 0 ? allMonthsFlat[allMonthsFlat.length - 1].idx : 0;
 
     const yearlyChart = Object.entries(yearly)
       .sort(([a], [b]) => Number(a) - Number(b))
@@ -107,10 +131,60 @@ export default function DashboardPage() {
     const worstMonth = defaultMonthly.length > 0 ? defaultMonthly.reduce((a, b) => a.net < b.net ? a : b) : null;
     const avgExpense = defaultMonthly.length > 0 ? Math.round(defaultMonthly.reduce((s, m) => s + m.expenses, 0) / defaultMonthly.length) : 0;
 
-    return { yearly, yearlyChart, monthly: defaultMonthly, currentYear: cy, prevYear, savingsRate, bestMonth, worstMonth, avgExpense, currentYearNum: currentYear, allYears, getMonthlyForYear };
+    return { yearly, yearlyChart, monthly: defaultMonthly, currentYear: cy, prevYear, savingsRate, bestMonth, worstMonth, avgExpense, currentYearNum: currentYear, allYears, getMonthlyForYear, allMonthsFlat, minIdx, maxIdx };
   }, [financeData, financeVars]);
 
-  const hasFinanceData = metrics.yearlyChart.length > 0 || metrics.monthly.length > 0;
+  // Initialize range to full data extent
+  if (!rangeInit && metrics.minIdx > 0) {
+    setRangeMin(metrics.minIdx);
+    setRangeMax(metrics.maxIdx);
+    setRangeInit(true);
+  }
+
+  const effectiveMin = rangeInit ? rangeMin : metrics.minIdx;
+  const effectiveMax = rangeInit ? rangeMax : metrics.maxIdx;
+
+  // Filter data by range
+  const filteredMonths = useMemo(() => {
+    return metrics.allMonthsFlat.filter((m) => m.idx >= effectiveMin && m.idx <= effectiveMax);
+  }, [metrics.allMonthsFlat, effectiveMin, effectiveMax]);
+
+  const filteredMonthlyChart = useMemo(() => {
+    let cum = 0;
+    return filteredMonths.map((m) => {
+      cum += m.net;
+      return { month: `${MONTHS_SHORT[m.month]} ${String(m.year).slice(2)}`, salary: m.salary, expenses: m.expenses, net: m.net, cumulative: cum };
+    });
+  }, [filteredMonths]);
+
+  const filteredYearlyChart = useMemo(() => {
+    const yearly: Record<number, { salary: number; expenses: number; net: number }> = {};
+    for (const m of filteredMonths) {
+      if (!yearly[m.year]) yearly[m.year] = { salary: 0, expenses: 0, net: 0 };
+      yearly[m.year].salary += m.salary;
+      yearly[m.year].expenses += m.expenses;
+      yearly[m.year].net += m.net;
+    }
+    return Object.entries(yearly).sort(([a], [b]) => Number(a) - Number(b)).map(([year, v]) => ({ year, ...v }));
+  }, [filteredMonths]);
+
+  const filteredStats = useMemo(() => {
+    const totalSalary = filteredMonths.reduce((s, m) => s + m.salary, 0);
+    const totalExpenses = filteredMonths.reduce((s, m) => s + m.expenses, 0);
+    const savingsRate = totalSalary > 0 ? ((totalSalary - totalExpenses) / totalSalary) * 100 : 0;
+    const best = filteredMonths.length > 0 ? filteredMonths.reduce((a, b) => a.net > b.net ? a : b) : null;
+    const worst = filteredMonths.length > 0 ? filteredMonths.reduce((a, b) => a.net < b.net ? a : b) : null;
+    const avgExp = filteredMonths.length > 0 ? Math.round(totalExpenses / filteredMonths.length) : 0;
+    return { totalSalary, totalExpenses, savingsRate, best, worst, avgExp };
+  }, [filteredMonths]);
+
+  const formatMonthIdx = (idx: number) => {
+    const year = Math.floor(idx / 12);
+    const month = idx % 12;
+    return `${MONTHS_SHORT[month]} ${year}`;
+  };
+
+  const hasFinanceData = metrics.allMonthsFlat.length > 0;
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
 
   const increment = (id: string, step: number) => {
@@ -177,86 +251,91 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ===== DATE RANGE SLIDER ===== */}
+      {hasFinanceData && (
+        <div className="pixel-card p-4">
+          <h3 className="font-pixel text-[9px] text-gray-500 mb-2">DATE RANGE</h3>
+          <RangeSlider
+            min={metrics.minIdx}
+            max={metrics.maxIdx}
+            valueMin={effectiveMin}
+            valueMax={effectiveMax}
+            onChange={(newMin, newMax) => { setRangeMin(newMin); setRangeMax(newMax); setRangeInit(true); }}
+            formatLabel={formatMonthIdx}
+            color="#00ffff"
+          />
+          <p className="font-pixel-body text-sm text-gray-600 mt-1 text-center">
+            {filteredMonths.length} months selected
+          </p>
+        </div>
+      )}
+
       {/* ===== TELEMETRY TILES ===== */}
       {hasFinanceData && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="pixel-card p-3">
-            <p className="font-pixel text-[8px] text-pixel-green">INCOME YTD</p>
+            <p className="font-pixel text-[8px] text-pixel-green">TOTAL INCOME</p>
             <p className="font-pixel-body text-2xl text-pixel-green mt-1">
-              €{metrics.currentYear.salary.toLocaleString("en", { maximumFractionDigits: 0 })}
+              €{filteredStats.totalSalary.toLocaleString("en", { maximumFractionDigits: 0 })}
             </p>
-            {metrics.prevYear.salary > 0 && (
-              <p className="font-pixel-body text-xs text-gray-500 mt-1">
-                vs €{metrics.prevYear.salary.toLocaleString("en", { maximumFractionDigits: 0 })} prev
-              </p>
-            )}
           </div>
           <div className="pixel-card p-3">
-            <p className="font-pixel text-[8px] text-pixel-red">EXPENSES YTD</p>
+            <p className="font-pixel text-[8px] text-pixel-red">TOTAL EXPENSES</p>
             <p className="font-pixel-body text-2xl text-pixel-red mt-1">
-              €{metrics.currentYear.expenses.toLocaleString("en", { maximumFractionDigits: 0 })}
+              €{filteredStats.totalExpenses.toLocaleString("en", { maximumFractionDigits: 0 })}
             </p>
             <p className="font-pixel-body text-xs text-gray-500 mt-1">
-              avg €{metrics.avgExpense.toLocaleString()}/mo
+              avg €{filteredStats.avgExp.toLocaleString()}/mo
             </p>
           </div>
           <div className="pixel-card p-3">
             <p className="font-pixel text-[8px] text-pixel-gold">SAVINGS RATE</p>
-            <p className={`font-pixel-body text-2xl mt-1 ${metrics.savingsRate >= 0 ? "text-pixel-gold" : "text-pixel-red"}`}>
-              {metrics.savingsRate.toFixed(1)}%
+            <p className={`font-pixel-body text-2xl mt-1 ${filteredStats.savingsRate >= 0 ? "text-pixel-gold" : "text-pixel-red"}`}>
+              {filteredStats.savingsRate.toFixed(1)}%
             </p>
             <div className="pixel-progress mt-2 h-2">
-              <div className="pixel-progress-fill bg-pixel-gold" style={{ width: `${Math.max(0, Math.min(metrics.savingsRate, 100))}%` }} />
+              <div className="pixel-progress-fill bg-pixel-gold" style={{ width: `${Math.max(0, Math.min(filteredStats.savingsRate, 100))}%` }} />
             </div>
           </div>
           <div className="pixel-card p-3">
-            <p className="font-pixel text-[8px] text-pixel-purple">INVESTMENTS</p>
-            <p className="font-pixel-body text-2xl text-pixel-purple mt-1">
-              €{metrics.currentYear.investments.toLocaleString("en", { maximumFractionDigits: 0 })}
-            </p>
-            <p className="font-pixel-body text-xs text-gray-500 mt-1">
-              total outflow
+            <p className="font-pixel text-[8px] text-pixel-cyan">NET INCOME</p>
+            <p className={`font-pixel-body text-2xl mt-1 ${filteredStats.totalSalary - filteredStats.totalExpenses >= 0 ? "text-pixel-green" : "text-pixel-red"}`}>
+              €{(filteredStats.totalSalary - filteredStats.totalExpenses).toLocaleString("en", { maximumFractionDigits: 0 })}
             </p>
           </div>
         </div>
       )}
 
       {/* ===== BEST / WORST MONTH ALERTS ===== */}
-      {metrics.bestMonth && metrics.worstMonth && (
+      {filteredStats.best && filteredStats.worst && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="pixel-card p-3 border-l-4 border-pixel-green">
             <p className="font-pixel text-[8px] text-pixel-green">BEST MONTH</p>
             <p className="font-pixel-body text-xl text-white">
-              {metrics.bestMonth.month} &mdash; <span className="text-pixel-green">+€{metrics.bestMonth.net.toLocaleString()}</span>
+              {MONTHS_SHORT[filteredStats.best.month]} {filteredStats.best.year} &mdash; <span className="text-pixel-green">+€{filteredStats.best.net.toLocaleString()}</span>
             </p>
           </div>
           <div className="pixel-card p-3 border-l-4 border-pixel-red">
             <p className="font-pixel text-[8px] text-pixel-red">WORST MONTH</p>
             <p className="font-pixel-body text-xl text-white">
-              {metrics.worstMonth.month} &mdash; <span className="text-pixel-red">{metrics.worstMonth.net >= 0 ? "+" : ""}€{metrics.worstMonth.net.toLocaleString()}</span>
+              {MONTHS_SHORT[filteredStats.worst.month]} {filteredStats.worst.year} &mdash; <span className="text-pixel-red">{filteredStats.worst.net >= 0 ? "+" : ""}€{filteredStats.worst.net.toLocaleString()}</span>
             </p>
           </div>
         </div>
       )}
 
       {/* ===== CASH FLOW TRAJECTORY ===== */}
-      {metrics.allYears.length > 0 && (
+      {filteredMonthlyChart.length > 0 && (
         <div className="pixel-card p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="font-pixel text-xs text-pixel-cyan">CASH FLOW TRAJECTORY</h3>
-            <div className="flex gap-1">
-              {metrics.allYears.map((yr) => (
-                <button key={yr} onClick={() => setCashFlowYear(yr)}
-                  className={`font-pixel-body text-sm px-2 py-1 border transition-colors ${cashFlowYear === yr ? "border-pixel-cyan bg-pixel-cyan/20 text-pixel-cyan" : "border-[#2a2a4a] text-gray-500 hover:text-white"}`}>
-                  {yr}
-                </button>
-              ))}
-            </div>
+            <span className={`font-pixel text-xs ${filteredMonthlyChart[filteredMonthlyChart.length - 1].cumulative >= 0 ? "text-pixel-green" : "text-pixel-red"}`}>
+              €{filteredMonthlyChart[filteredMonthlyChart.length - 1].cumulative.toLocaleString()}
+            </span>
           </div>
-          {(() => { const cfData = metrics.getMonthlyForYear(cashFlowYear); return cfData.length > 0 ? (
           <div className="w-full h-44 sm:h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={cfData}>
+              <AreaChart data={filteredMonthlyChart}>
                 <defs>
                   <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#00ffff" stopOpacity={0.3} />
@@ -264,38 +343,26 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="#2a2a4a" strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} interval={Math.max(0, Math.floor(filteredMonthlyChart.length / 12))} />
                 <YAxis tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false}
                   tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v <= -1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} width={45} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`€${Number(value).toLocaleString()}`, "Cumulative"]} labelStyle={{ color: "#888" }} />
-                <Area type="monotone" dataKey="cumulative" stroke="#00ffff" strokeWidth={2} fill="url(#cashGrad)" dot={{ fill: "#00ffff", r: 3 }} />
+                <Area type="monotone" dataKey="cumulative" stroke="#00ffff" strokeWidth={2} fill="url(#cashGrad)" dot={filteredMonthlyChart.length <= 24 ? { fill: "#00ffff", r: 3 } : false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          ) : <p className="font-pixel-body text-base text-gray-500 text-center py-4">No data for {cashFlowYear}</p>; })()}
         </div>
       )}
 
       {/* ===== MONTHLY SIGNAL READOUT (salary vs expenses) ===== */}
-      {metrics.allYears.length > 0 && (
+      {filteredMonthlyChart.length > 0 && (
         <div className="pixel-card p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h3 className="font-pixel text-xs text-pixel-gold">MONTHLY SIGNAL</h3>
-            <div className="flex gap-1">
-              {metrics.allYears.map((yr) => (
-                <button key={yr} onClick={() => setMonthlyYear(yr)}
-                  className={`font-pixel-body text-sm px-2 py-1 border transition-colors ${monthlyYear === yr ? "border-pixel-gold bg-pixel-gold/20 text-pixel-gold" : "border-[#2a2a4a] text-gray-500 hover:text-white"}`}>
-                  {yr}
-                </button>
-              ))}
-            </div>
-          </div>
-          {(() => { const mData = metrics.getMonthlyForYear(monthlyYear); return mData.length > 0 ? (
+          <h3 className="font-pixel text-xs text-pixel-gold mb-3">MONTHLY SIGNAL</h3>
           <div className="w-full h-48 sm:h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mData} barGap={1} barSize={20}>
+              <BarChart data={filteredMonthlyChart} barGap={1} barSize={Math.max(4, Math.min(20, 400 / filteredMonthlyChart.length))}>
                 <CartesianGrid stroke="#2a2a4a" strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} />
+                <XAxis dataKey="month" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 12 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} interval={Math.max(0, Math.floor(filteredMonthlyChart.length / 12))} />
                 <YAxis tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false}
                   tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} width={40} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value, name) => [`€${Number(value).toLocaleString()}`, String(name)]} labelStyle={{ color: "#888" }} />
@@ -304,32 +371,16 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          ) : <p className="font-pixel-body text-base text-gray-500 text-center py-4">No data for {monthlyYear}</p>; })()}
         </div>
       )}
 
       {/* ===== YEARLY COMPARISON ===== */}
-      {metrics.yearlyChart.length > 1 && (() => {
-        const currentYr = new Date().getFullYear();
-        const filtered = yearlyZoom === "1y" ? metrics.yearlyChart.filter((y) => Number(y.year) >= currentYr)
-          : yearlyZoom === "3y" ? metrics.yearlyChart.filter((y) => Number(y.year) >= currentYr - 2)
-          : metrics.yearlyChart;
-        return (
+      {filteredYearlyChart.length > 1 && (
         <div className="pixel-card p-4">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h3 className="font-pixel text-xs text-pixel-purple">MULTI-YEAR TELEMETRY</h3>
-            <div className="flex gap-1">
-              {(["all", "3y", "1y"] as const).map((z) => (
-                <button key={z} onClick={() => setYearlyZoom(z)}
-                  className={`font-pixel-body text-sm px-2 py-1 border transition-colors ${yearlyZoom === z ? "border-pixel-purple bg-pixel-purple/20 text-pixel-purple" : "border-[#2a2a4a] text-gray-500 hover:text-white"}`}>
-                  {z === "all" ? "ALL" : z.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
+          <h3 className="font-pixel text-xs text-pixel-purple mb-3">MULTI-YEAR TELEMETRY</h3>
           <div className="w-full h-48 sm:h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filtered} barGap={2}>
+              <BarChart data={filteredYearlyChart} barGap={2}>
                 <CartesianGrid stroke="#2a2a4a" strokeDasharray="3 3" />
                 <XAxis dataKey="year" tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false} />
                 <YAxis tick={{ fill: "#888", fontFamily: "VT323, monospace", fontSize: 14 }} axisLine={{ stroke: "#2a2a4a" }} tickLine={false}
@@ -340,9 +391,8 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          {/* Year-over-year tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-[#2a2a4a]">
-            {filtered.map((y) => (
+            {filteredYearlyChart.map((y) => (
               <div key={y.year} className="text-center">
                 <p className="font-pixel text-[8px] text-gray-500">{y.year}</p>
                 <p className={`font-pixel-body text-lg ${y.net >= 0 ? "text-pixel-green" : "text-pixel-red"}`}>
@@ -352,7 +402,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-      ); })()}
+      )}
 
       {/* ===== QUICK COUNTERS ===== */}
       <div className="pixel-card p-4">
