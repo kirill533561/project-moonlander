@@ -225,7 +225,7 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Star field */
+/* ===== 8-BIT PIXEL STAR FIELD ===== */
 .star-field {
   position: fixed;
   top: 0;
@@ -234,104 +234,167 @@
   height: 100%;
   pointer-events: none;
   z-index: 0;
+  /* Tiny 2x2 pixel stars — lots of them */
   background:
-    radial-gradient(1px 1px at 20% 30%, #ffffff66, transparent),
-    radial-gradient(1px 1px at 40% 70%, #ffffff55, transparent),
-    radial-gradient(1.5px 1.5px at 60% 20%, #ffffff44, transparent),
-    radial-gradient(1px 1px at 80% 50%, #ffffff66, transparent),
-    radial-gradient(2px 2px at 10% 80%, #00ffff33, transparent),
-    radial-gradient(2px 2px at 70% 10%, #b967ff33, transparent),
-    radial-gradient(1px 1px at 90% 90%, #ffffff55, transparent),
-    radial-gradient(1.5px 1.5px at 50% 50%, #ffffff44, transparent),
-    radial-gradient(1px 1px at 30% 60%, #ffffff66, transparent),
-    radial-gradient(1px 1px at 15% 45%, #ffffff55, transparent),
-    radial-gradient(2px 2px at 85% 35%, #ffd70022, transparent),
-    radial-gradient(1px 1px at 45% 85%, #ffffff66, transparent),
-    radial-gradient(1.5px 1.5px at 75% 65%, #ffffff55, transparent),
-    radial-gradient(1px 1px at 5% 15%, #ffffff44, transparent),
-    radial-gradient(2px 2px at 55% 5%, #00ffff22, transparent),
-    radial-gradient(1px 1px at 95% 75%, #ffffff55, transparent),
-    radial-gradient(1px 1px at 25% 10%, #ffffff44, transparent),
-    radial-gradient(1.5px 1.5px at 65% 90%, #ffffff33, transparent),
-    radial-gradient(1px 1px at 35% 40%, #ffffff55, transparent),
-    radial-gradient(2px 2px at 88% 15%, #b967ff22, transparent);
-  animation: twinkle 4s ease-in-out infinite alternate;
+    linear-gradient(#fff 0%, #fff 100%) 5% 8% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 12% 22% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 18% 55% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 25% 15% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 32% 72% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 38% 38% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 45% 5% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 52% 88% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 58% 42% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 65% 18% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 72% 62% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 78% 30% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 85% 78% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 92% 10% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 95% 52% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 8% 90% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 22% 35% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 48% 65% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 68% 48% / 2px 2px no-repeat,
+    linear-gradient(#fff 0%, #fff 100%) 88% 92% / 2px 2px no-repeat,
+    /* Brighter 3x3 pixel stars */
+    linear-gradient(#00ffff 0%, #00ffff 100%) 15% 70% / 3px 3px no-repeat,
+    linear-gradient(#00ffff 0%, #00ffff 100%) 55% 25% / 3px 3px no-repeat,
+    linear-gradient(#00ffff 0%, #00ffff 100%) 82% 55% / 3px 3px no-repeat,
+    linear-gradient(#b967ff 0%, #b967ff 100%) 35% 12% / 3px 3px no-repeat,
+    linear-gradient(#b967ff 0%, #b967ff 100%) 75% 85% / 3px 3px no-repeat,
+    linear-gradient(#ffd700 0%, #ffd700 100%) 42% 92% / 3px 3px no-repeat,
+    linear-gradient(#ffd700 0%, #ffd700 100%) 90% 35% / 3px 3px no-repeat,
+    /* Dimmer 2x2 stars (second layer) */
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 3% 45% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 17% 82% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 28% 28% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 42% 55% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 57% 12% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 63% 75% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 77% 42% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 88% 68% / 2px 2px no-repeat,
+    linear-gradient(#ffffff66 0%, #ffffff66 100%) 93% 22% / 2px 2px no-repeat,
+    linear-gradient(#ffffff44 0%, #ffffff44 100%) 10% 60% / 2px 2px no-repeat,
+    linear-gradient(#ffffff44 0%, #ffffff44 100%) 33% 48% / 2px 2px no-repeat,
+    linear-gradient(#ffffff44 0%, #ffffff44 100%) 50% 78% / 2px 2px no-repeat,
+    linear-gradient(#ffffff44 0%, #ffffff44 100%) 70% 15% / 2px 2px no-repeat,
+    linear-gradient(#ffffff44 0%, #ffffff44 100%) 85% 88% / 2px 2px no-repeat;
+  animation: pixel-twinkle 3s steps(2) infinite alternate;
 }
 
-/* Moon */
+/* 8-bit Pixel Moon — built from box-shadows */
 .star-field::before {
   content: "";
   position: fixed;
-  top: 5%;
-  right: 8%;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffd70044, #ffd70022 50%, transparent 70%);
+  top: 6%;
+  right: 10%;
+  width: 4px;
+  height: 4px;
+  background: #ffd700;
+  pointer-events: none;
   box-shadow:
-    0 0 20px #ffd70015,
-    0 0 60px #ffd70008;
-  animation: moon-glow 6s ease-in-out infinite alternate;
+    /* Moon body — 8x8 pixel circle */
+    4px 0 0 #ffd700,  8px 0 0 #ffd700,
+    0px 4px 0 #ffd700,  4px 4px 0 #ffd700,  8px 4px 0 #ffd700,  12px 4px 0 #ffd700,
+    -4px 8px 0 #ffd700,  0px 8px 0 #ffd700,  4px 8px 0 #ffd700,  8px 8px 0 #ffd700,  12px 8px 0 #ffd700,  16px 8px 0 #ffd700,
+    -4px 12px 0 #ffd700,  0px 12px 0 #ffd700,  4px 12px 0 #ffed4a,  8px 12px 0 #ffed4a,  12px 12px 0 #ffd700,  16px 12px 0 #ffd700,
+    -4px 16px 0 #ffd700,  0px 16px 0 #ffd700,  4px 16px 0 #ffd700,  8px 16px 0 #ffed4a,  12px 16px 0 #ffd700,  16px 16px 0 #ffd700,
+    -4px 20px 0 #ffd700,  0px 20px 0 #ffd700,  4px 20px 0 #ffd700,  8px 20px 0 #ffd700,  12px 20px 0 #ffd700,  16px 20px 0 #ffd700,
+    0px 24px 0 #ffd700,  4px 24px 0 #ffd700,  8px 24px 0 #ffd700,  12px 24px 0 #ffd700,
+    4px 28px 0 #ffd700,  8px 28px 0 #ffd700,
+    /* Glow */
+    -4px 4px 0 #ffd70033,  16px 0px 0 #ffd70033,
+    -8px 12px 0 #ffd70022,  20px 12px 0 #ffd70022,
+    -4px 24px 0 #ffd70033,  16px 24px 0 #ffd70033,
+    4px 32px 0 #ffd70022,  8px 32px 0 #ffd70022;
+  animation: moon-pulse 4s steps(2) infinite alternate;
+  image-rendering: pixelated;
 }
 
-/* Shooting stars */
-.star-field::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  overflow: hidden;
-}
-
-@keyframes twinkle {
-  0% { opacity: 0.5; }
-  50% { opacity: 0.8; }
+@keyframes pixel-twinkle {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.85; }
   100% { opacity: 1; }
 }
 
-@keyframes moon-glow {
-  0% { box-shadow: 0 0 20px #ffd70015, 0 0 60px #ffd70008; }
-  100% { box-shadow: 0 0 30px #ffd70025, 0 0 80px #ffd70012; }
+@keyframes moon-pulse {
+  0% { filter: brightness(0.8); }
+  100% { filter: brightness(1.2); }
 }
 
-@keyframes shoot {
-  0% { transform: translateX(0) translateY(0); opacity: 1; }
-  100% { transform: translateX(-300px) translateY(300px); opacity: 0; }
-}
-
-/* Twinkling individual stars */
-.star-field-sparkle-1,
-.star-field-sparkle-2,
-.star-field-sparkle-3 {
+/* 8-bit pixel sparkle stars — cross shape */
+.pixel-sparkle {
   position: fixed;
   pointer-events: none;
   z-index: 0;
-  border-radius: 50%;
-  background: white;
+  width: 2px;
+  height: 2px;
+  background: #00ffff;
+  image-rendering: pixelated;
 }
 
-.star-field-sparkle-1 {
-  width: 2px; height: 2px;
-  top: 12%; left: 25%;
-  animation: sparkle-pulse 2s ease-in-out infinite;
-}
-.star-field-sparkle-2 {
-  width: 3px; height: 3px;
-  top: 45%; left: 78%;
-  animation: sparkle-pulse 3s ease-in-out infinite 1s;
-}
-.star-field-sparkle-3 {
-  width: 2px; height: 2px;
-  top: 72%; left: 42%;
-  animation: sparkle-pulse 2.5s ease-in-out infinite 0.5s;
+.pixel-sparkle::before,
+.pixel-sparkle::after {
+  content: "";
+  position: absolute;
+  background: inherit;
 }
 
-@keyframes sparkle-pulse {
-  0%, 100% { opacity: 0.2; transform: scale(1); box-shadow: 0 0 2px white; }
-  50% { opacity: 1; transform: scale(1.8); box-shadow: 0 0 8px #00ffff, 0 0 15px #00ffff44; }
+/* Cross shape: center + 4 arms */
+.pixel-sparkle::before {
+  width: 2px;
+  height: 2px;
+  top: -4px;
+  left: 0;
+  box-shadow:
+    0 8px 0 currentColor,
+    -4px 4px 0 currentColor,
+    4px 4px 0 currentColor,
+    0 4px 0 currentColor;
+}
+
+.pixel-sparkle-1 {
+  top: 10%; left: 20%;
+  color: #00ffff;
+  background: #00ffff;
+  animation: sparkle-8bit 2s steps(3) infinite;
+}
+.pixel-sparkle-2 {
+  top: 35%; left: 75%;
+  color: #ffd700;
+  background: #ffd700;
+  animation: sparkle-8bit 2.5s steps(3) infinite 0.8s;
+}
+.pixel-sparkle-3 {
+  top: 65%; left: 40%;
+  color: #b967ff;
+  background: #b967ff;
+  animation: sparkle-8bit 3s steps(3) infinite 1.5s;
+}
+.pixel-sparkle-4 {
+  top: 20%; left: 60%;
+  color: #fff;
+  background: #fff;
+  animation: sparkle-8bit 2s steps(3) infinite 0.3s;
+}
+.pixel-sparkle-5 {
+  top: 80%; left: 85%;
+  color: #00ffff;
+  background: #00ffff;
+  animation: sparkle-8bit 2.8s steps(3) infinite 1.2s;
+}
+.pixel-sparkle-6 {
+  top: 50%; left: 15%;
+  color: #ffd700;
+  background: #ffd700;
+  animation: sparkle-8bit 3.2s steps(3) infinite 2s;
+}
+
+@keyframes sparkle-8bit {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  20% { opacity: 1; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+  80% { opacity: 0.5; transform: scale(0.8); }
 }
 
 @keyframes float {

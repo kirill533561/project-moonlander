@@ -7,8 +7,6 @@ interface Star {
   top: number;
   left: number;
   duration: number;
-  delay: number;
-  angle: number;
 }
 
 export function ShootingStar() {
@@ -16,25 +14,20 @@ export function ShootingStar() {
 
   useEffect(() => {
     let counter = 0;
+
     const spawn = () => {
       const star: Star = {
         id: counter++,
-        top: Math.random() * 40,
-        left: 30 + Math.random() * 60,
-        duration: 0.8 + Math.random() * 0.6,
-        delay: 0,
-        angle: 35 + Math.random() * 20,
+        top: Math.random() * 35,
+        left: 40 + Math.random() * 50,
+        duration: 1 + Math.random() * 0.5,
       };
-      setStars((prev) => [...prev.slice(-3), star]);
+      setStars((prev) => [...prev.slice(-2), star]);
     };
 
-    const interval = setInterval(spawn, 4000 + Math.random() * 6000);
-    const timeout = setTimeout(spawn, 2000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
+    spawn();
+    const interval = setInterval(spawn, 5000 + Math.random() * 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -46,27 +39,49 @@ export function ShootingStar() {
           style={{
             top: `${star.top}%`,
             left: `${star.left}%`,
-            animation: `shooting-star ${star.duration}s linear forwards`,
-            transform: `rotate(${star.angle}deg)`,
+            animation: `pixel-shoot ${star.duration}s steps(20) forwards`,
+            imageRendering: "pixelated",
           }}
         >
-          <div
-            className="h-[1px] bg-gradient-to-r from-white via-cyan-200 to-transparent"
-            style={{ width: "80px" }}
-          />
+          {/* 8-bit shooting star: head + pixel trail */}
+          <div className="relative">
+            {/* Bright head */}
+            <div
+              className="absolute"
+              style={{
+                width: 4,
+                height: 4,
+                background: "#fff",
+                boxShadow: "0 0 0 1px #00ffff, 2px 0 0 #00ffff, 4px 0 0 #00ffff",
+              }}
+            />
+            {/* Trail pixels */}
+            <div
+              className="absolute"
+              style={{
+                left: 6,
+                top: 1,
+                width: 3,
+                height: 2,
+                background: "#00ffff",
+                boxShadow:
+                  "4px 0 0 #00ffffaa, 8px 0 0 #00ffff77, 12px 0 0 #00ffff55, 16px 0 0 #00ffff33, 20px 0 0 #00ffff22, 24px 0 0 #00ffff11",
+              }}
+            />
+          </div>
         </div>
       ))}
       <style jsx>{`
-        @keyframes shooting-star {
+        @keyframes pixel-shoot {
           0% {
-            transform: translateX(0) translateY(0) rotate(var(--angle, 40deg));
+            transform: translate(0, 0);
             opacity: 1;
           }
-          70% {
+          80% {
             opacity: 0.8;
           }
           100% {
-            transform: translateX(-400px) translateY(250px) rotate(var(--angle, 40deg));
+            transform: translate(-350px, 220px);
             opacity: 0;
           }
         }

@@ -10,9 +10,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <DemoProvider>
       <div className="min-h-screen bg-space-dark relative">
         <div className="star-field" />
-        <div className="star-field-sparkle-1" />
-        <div className="star-field-sparkle-2" />
-        <div className="star-field-sparkle-3" />
+        <div className="pixel-sparkle pixel-sparkle-1" />
+        <div className="pixel-sparkle pixel-sparkle-2" />
+        <div className="pixel-sparkle pixel-sparkle-3" />
+        <div className="pixel-sparkle pixel-sparkle-4" />
+        <div className="pixel-sparkle pixel-sparkle-5" />
+        <div className="pixel-sparkle pixel-sparkle-6" />
         <ShootingStar />
         <SidebarNav />
         <div className="md:ml-56 flex flex-col min-h-screen relative z-10">
