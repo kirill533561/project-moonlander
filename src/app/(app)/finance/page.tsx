@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useLocalStorage } from "@/lib/use-local-storage";
+import { useCloudStorage } from "@/lib/use-cloud-storage";
 import {
   Dialog,
   DialogContent,
@@ -787,11 +787,11 @@ function MonthlyOverviewTable({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
-  const [variables, setVariables] = useLocalStorage<FinanceVariable[]>("ml-finance-vars", DEFAULT_VARIABLES);
-  const [allData, setAllData] = useLocalStorage<Record<number, YearData>>("ml-finance-data", {});
+  const [variables, setVariables] = useCloudStorage<FinanceVariable[]>("ml-finance-vars", DEFAULT_VARIABLES);
+  const [allData, setAllData] = useCloudStorage<Record<number, YearData>>("ml-finance-data", {});
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(0);
-  const [comments, setComments] = useLocalStorage<Record<string, string>>("ml-finance-comments", {});
+  const [comments, setComments] = useCloudStorage<Record<string, string>>("ml-finance-comments", {});
 
   const commentKey = `${selectedYear}-${selectedMonth}`;
   const currentMonthData = allData[selectedYear]?.[selectedMonth] || {};

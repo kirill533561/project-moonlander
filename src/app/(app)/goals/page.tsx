@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useLocalStorage } from "@/lib/use-local-storage";
+import { useCloudStorage } from "@/lib/use-cloud-storage";
 import { playCounterClick, playSuccess, playDreamAdded, playDelete } from "@/lib/sounds";
 type GoalTab = "dreams" | "economic" | "wishlist" | "personal";
 import {
@@ -98,10 +98,10 @@ function generateId(): string {
 export default function GoalsPage() {
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [activeTab, setActiveTab] = useState<GoalTab>("dreams");
-  const [dreams, setDreams] = useLocalStorage<LongRangeDream[]>("ml-goals-dreams", INITIAL_DREAMS);
-  const [economic, setEconomic] = useLocalStorage<EconomicGoal[]>("ml-goals-economic", INITIAL_ECONOMIC);
-  const [wishlist, setWishlist] = useLocalStorage<WishlistItem[]>("ml-goals-wishlist", INITIAL_WISHLIST);
-  const [personal, setPersonal] = useLocalStorage<PersonalDevGoal[]>("ml-goals-personal", INITIAL_PERSONAL);
+  const [dreams, setDreams] = useCloudStorage<LongRangeDream[]>("ml-goals-dreams", INITIAL_DREAMS);
+  const [economic, setEconomic] = useCloudStorage<EconomicGoal[]>("ml-goals-economic", INITIAL_ECONOMIC);
+  const [wishlist, setWishlist] = useCloudStorage<WishlistItem[]>("ml-goals-wishlist", INITIAL_WISHLIST);
+  const [personal, setPersonal] = useCloudStorage<PersonalDevGoal[]>("ml-goals-personal", INITIAL_PERSONAL);
 
   // Add-dialog form states
   const [newDreamName, setNewDreamName] = useState("");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useLocalStorage } from "@/lib/use-local-storage";
+import { useCloudStorage } from "@/lib/use-cloud-storage";
 import { playCounterClick, playSuccess } from "@/lib/sounds";
 import { getMonthlyBadge, getBadgeGradient } from "@/lib/rewards";
 import { useDemoMode } from "@/components/layout/header";
@@ -27,16 +27,16 @@ const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 
 export default function DashboardPage() {
   const { demoMode } = useDemoMode();
-  const [counters, setCounters] = useLocalStorage<CounterGoal[]>("ml-dash-counters", []);
-  const [counts, setCounts] = useLocalStorage<Record<string, number>>("ml-dash-counts", {});
+  const [counters, setCounters] = useCloudStorage<CounterGoal[]>("ml-dash-counters", []);
+  const [counts, setCounts] = useCloudStorage<Record<string, number>>("ml-dash-counts", {});
   const [newName, setNewName] = useState("");
   const [newTarget, setNewTarget] = useState("");
   const [newStep, setNewStep] = useState("1");
   const [newUnit, setNewUnit] = useState("times");
 
-  const [financeData] = useLocalStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
-  const [financeVars] = useLocalStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
-  const [dreams] = useLocalStorage<{ id: string; name: string; achieved: boolean; target?: number | null; current?: number | null }[]>("ml-goals-dreams", []);
+  const [financeData] = useCloudStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
+  const [financeVars] = useCloudStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
+  const [dreams] = useCloudStorage<{ id: string; name: string; achieved: boolean; target?: number | null; current?: number | null }[]>("ml-goals-dreams", []);
 
   // Global date range (as month index: year*12+month)
   const [rangeMin, setRangeMin] = useState(0);

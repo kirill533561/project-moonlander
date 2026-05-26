@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useLocalStorage } from "@/lib/use-local-storage";
+import { useCloudStorage } from "@/lib/use-cloud-storage";
 import { playMissionComplete, playCounterClick } from "@/lib/sounds";
 
 interface RewardWheelProps {
@@ -15,7 +15,7 @@ const COLORS = [
 ];
 
 export function RewardWheel({ canSpin }: RewardWheelProps) {
-  const [rewards, setRewards] = useLocalStorage<string[]>("ml-rewards", []);
+  const [rewards, setRewards] = useCloudStorage<string[]>("ml-rewards", []);
   const [newReward, setNewReward] = useState("");
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
