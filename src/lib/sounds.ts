@@ -65,3 +65,28 @@ export function playError() {
   playTone(200, 0.2, "sawtooth");
   setTimeout(() => playTone(150, 0.3, "sawtooth"), 200);
 }
+
+export function playDreamAdded() {
+  // Spacey ascending "whoosh" — like a rocket launching a dream into orbit
+  const notes: [number, number, OscillatorType][] = [
+    [200, 0.08, "triangle"],
+    [300, 0.08, "triangle"],
+    [450, 0.08, "square"],
+    [600, 0.1, "square"],
+    [800, 0.12, "square"],
+    [1000, 0.15, "sine"],
+    [1200, 0.2, "sine"],
+    [1600, 0.3, "sine"],
+  ];
+  let t = 0;
+  notes.forEach(([freq, dur, type]) => {
+    setTimeout(() => playTone(freq, dur, type), t * 1000);
+    t += dur * 0.6;
+  });
+}
+
+export function playDelete() {
+  playTone(400, 0.1, "square");
+  setTimeout(() => playTone(250, 0.15, "square"), 80);
+  setTimeout(() => playTone(150, 0.2, "sawtooth"), 180);
+}

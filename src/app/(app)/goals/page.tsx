@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useLocalStorage } from "@/lib/use-local-storage";
-import { playCounterClick, playSuccess } from "@/lib/sounds";
+import { playCounterClick, playSuccess, playDreamAdded, playDelete } from "@/lib/sounds";
 type GoalTab = "dreams" | "economic" | "wishlist" | "personal";
 import {
   Dialog,
@@ -124,18 +124,22 @@ export default function GoalsPage() {
   }, []);
 
   const deleteDream = useCallback((id: string) => {
+    playDelete();
     setDreams((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
   const deleteEconomicGoal = useCallback((id: string) => {
+    playDelete();
     setEconomic((prev) => prev.filter((g) => g.id !== id));
   }, []);
 
   const deleteWishItem = useCallback((id: string) => {
+    playDelete();
     setWishlist((prev) => prev.filter((w) => w.id !== id));
   }, []);
 
   const deletePersonalGoal = useCallback((id: string) => {
+    playDelete();
     setPersonal((prev) => prev.filter((g) => g.id !== id));
   }, []);
 
@@ -146,6 +150,7 @@ export default function GoalsPage() {
       { id: generateId(), name: newDreamName.trim(), achieved: false },
     ]);
     setNewDreamName("");
+    playDreamAdded();
   }, [newDreamName]);
 
   /* --- economic actions --- */
@@ -332,32 +337,36 @@ export default function GoalsPage() {
             {dreams.map((dream) => (
               <div
                 key={dream.id}
-                className="pixel-card p-4 flex items-center justify-between gap-3"
+                className={`pixel-card p-4 flex items-center gap-3 transition-all ${
+                  dream.achieved ? "border-pixel-green" : ""
+                }`}
               >
+                {/* Toggle — tap to mark achieved */}
+                <button
+                  onClick={() => toggleDream(dream.id)}
+                  className={`w-10 h-10 flex items-center justify-center shrink-0 border-2 transition-all font-pixel-body text-xl ${
+                    dream.achieved
+                      ? "bg-pixel-green border-pixel-green text-space-dark"
+                      : "bg-transparent border-gray-600 text-gray-600 hover:border-pixel-purple hover:text-pixel-purple"
+                  }`}
+                >
+                  {dream.achieved ? "★" : "☆"}
+                </button>
+
+                {/* Name */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-pixel-body text-xl text-white truncate">
+                  <p className={`font-pixel-body text-xl truncate ${dream.achieved ? "text-pixel-green line-through" : "text-white"}`}>
                     {dream.name}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <button
-                    onClick={() => toggleDream(dream.id)}
-                    className={`w-12 h-12 flex items-center justify-center text-2xl border-3 transition-colors ${
-                      dream.achieved
-                        ? "bg-pixel-green/20 border-pixel-green text-pixel-green"
-                        : "bg-transparent border-[#2a2a4a] text-gray-500 hover:border-pixel-cyan"
-                    }`}
-                  >
-                    {dream.achieved ? "✓" : "○"}
-                  </button>
-                  <button
-                    onClick={() => deleteDream(dream.id)}
-                    className="font-pixel-body text-sm text-gray-600 hover:text-pixel-red px-1 py-1 border border-transparent hover:border-pixel-red/50 transition-colors"
-                    title="Delete dream"
-                  >
-                    🗑
-                  </button>
-                </div>
+
+                {/* Delete */}
+                <button
+                  onClick={() => deleteDream(dream.id)}
+                  className="pixel-btn w-10 h-10 flex items-center justify-center text-lg shrink-0 border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
+                >
+                  −
+                </button>
               </div>
             ))}
 
@@ -417,9 +426,9 @@ export default function GoalsPage() {
                       </span>
                       <button
                         onClick={() => deleteEconomicGoal(goal.id)}
-                        className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2"
+                        className="pixel-btn w-9 h-9 flex items-center justify-center text-lg border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
                       >
-                        ✕
+                        −
                       </button>
                     </div>
                   </div>
@@ -532,9 +541,9 @@ export default function GoalsPage() {
                   </p>
                   <button
                     onClick={() => deleteWishItem(item.id)}
-                    className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2 shrink-0"
+                    className="pixel-btn w-9 h-9 flex items-center justify-center text-lg shrink-0 border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
                   >
-                    ✕
+                    −
                   </button>
                 </div>
 
@@ -644,9 +653,9 @@ export default function GoalsPage() {
                         )}
                       <button
                         onClick={() => deletePersonalGoal(goal.id)}
-                        className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2"
+                        className="pixel-btn w-9 h-9 flex items-center justify-center text-lg border-pixel-red/50 text-pixel-red/50 hover:border-pixel-red hover:text-pixel-red hover:bg-pixel-red/10"
                       >
-                        ✕
+                        −
                       </button>
                     </div>
                   </div>
