@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useLocalStorage } from "@/lib/use-local-storage";
 import { playMissionComplete, playCounterClick } from "@/lib/sounds";
 import {
   Dialog,
@@ -21,7 +22,7 @@ const WHEEL_COLORS = [
 ];
 
 export function RewardWheel({ canSpin }: RewardWheelProps) {
-  const [rewards, setRewards] = useState<string[]>([]);
+  const [rewards, setRewards] = useLocalStorage<string[]>("ml-rewards", []);
   const [newReward, setNewReward] = useState("");
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);

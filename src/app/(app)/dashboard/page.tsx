@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocalStorage } from "@/lib/use-local-storage";
 import { playCounterClick, playSuccess } from "@/lib/sounds";
 import { getMonthlyBadge, getBadgeGradient } from "@/lib/rewards";
 import {
@@ -37,8 +38,8 @@ interface CounterGoal {
 export default function DashboardPage() {
   const { demoMode } = useDemoMode();
 
-  const [counters, setCounters] = useState<CounterGoal[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [counters, setCounters] = useLocalStorage<CounterGoal[]>("ml-dash-counters", []);
+  const [counts, setCounts] = useLocalStorage<Record<string, number>>("ml-dash-counts", {});
 
   const [newName, setNewName] = useState("");
   const [newTarget, setNewTarget] = useState("");
