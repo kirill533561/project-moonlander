@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Press_Start_2P, VT323 } from "next/font/google";
 import "./globals.css";
 
@@ -17,6 +17,20 @@ const vt323 = VT323({
 export const metadata: Metadata = {
   title: "Project Moonlander",
   description: "Gamified personal goals & finance tracker — 8-bit space mission style",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Moonlander",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#00ffff",
 };
 
 export default function RootLayout({
@@ -26,7 +40,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${pressStart2P.variable} ${vt323.variable} h-full dark`}>
-      <body className="min-h-full flex flex-col bg-space-dark">{children}</body>
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
+      <body className="min-h-full flex flex-col bg-space-dark">
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js")`,
+          }}
+        />
+      </body>
     </html>
   );
 }

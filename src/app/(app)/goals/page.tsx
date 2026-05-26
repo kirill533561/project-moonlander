@@ -61,81 +61,13 @@ interface PersonalDevGoal {
 
 /* ---------- initial mock data ---------- */
 
-const INITIAL_DREAMS: LongRangeDream[] = [
-  { id: "d1", name: "Get Dutch Residency", achieved: false },
-  { id: "d2", name: "Buy apartment in Amsterdam Zuid", achieved: false },
-  { id: "d3", name: "Passive income EUR 5,000/month", achieved: false },
-];
+const INITIAL_DREAMS: LongRangeDream[] = [];
 
-const INITIAL_ECONOMIC: EconomicGoal[] = [
-  {
-    id: "e1",
-    name: "Have 500 users of 9-thirty app",
-    targetType: "end_of_year",
-    target: 500,
-    current: 22,
-    monthlyInputs: [5, 3, 4, 6, 4, null, null, null, null, null, null, null],
-  },
-  {
-    id: "e2",
-    name: "Earn at least EUR 50,000 Gross",
-    targetType: "cumulative",
-    target: 50000,
-    current: 34985,
-    monthlyInputs: [7200, 7100, 6800, 7200, 6685, null, null, null, null, null, null, null],
-  },
-  {
-    id: "e3",
-    name: "Earn EUR 1,500 in stock transactions",
-    targetType: "cumulative",
-    target: 1500,
-    current: 131.68,
-    monthlyInputs: [45.2, 0, 86.48, 0, 0, null, null, null, null, null, null, null],
-  },
-  {
-    id: "e4",
-    name: "Earn EUR 1,000 in dividends",
-    targetType: "cumulative",
-    target: 1000,
-    current: 322.82,
-    monthlyInputs: [65.1, 72.3, 58.22, 68.1, 59.1, null, null, null, null, null, null, null],
-  },
-];
+const INITIAL_ECONOMIC: EconomicGoal[] = [];
 
-const INITIAL_WISHLIST: WishlistItem[] = [
-  { id: "w1", name: "Go to Dortmund game", achievedMonth: null },
-  { id: "w2", name: "Buy a new apartment", achievedMonth: null },
-  { id: "w3", name: "Get a new job", achievedMonth: 5 },
-  { id: "w4", name: "Travel to China", achievedMonth: 8 },
-];
+const INITIAL_WISHLIST: WishlistItem[] = [];
 
-const INITIAL_PERSONAL: PersonalDevGoal[] = [
-  {
-    id: "p1",
-    name: "Gym: 15 sessions/month",
-    trackingType: "counter",
-    monthlyTarget: 15,
-    monthlyValues: [12, 14, 15, 11, 8, null, null, null, null, null, null, null],
-  },
-  {
-    id: "p2",
-    name: "Steps: 8500/day avg",
-    trackingType: "ratio",
-    monthlyValues: [0.82, 0.91, 0.78, 0.95, 0.7, null, null, null, null, null, null, null],
-  },
-  {
-    id: "p3",
-    name: "Weight: 68kg",
-    trackingType: "ratio",
-    monthlyValues: [0.96, 0.94, 0.97, 0.95, 0.93, null, null, null, null, null, null, null],
-  },
-  {
-    id: "p4",
-    name: "Pass Dutch exams",
-    trackingType: "ratio",
-    monthlyValues: [0.3, 0.4, 0.5, 0.55, 0.6, null, null, null, null, null, null, null],
-  },
-];
+const INITIAL_PERSONAL: PersonalDevGoal[] = [];
 
 /* ---------- helpers ---------- */
 

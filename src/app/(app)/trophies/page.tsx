@@ -31,24 +31,15 @@ const MONTH_SHORT = [
   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
 ];
 
-const MONTHLY_DATA_2025: MonthRecord[] = [
-  { month: "January",   shortMonth: "JAN", completionPct: 0.92, earned: true },
-  { month: "February",  shortMonth: "FEB", completionPct: 0.78, earned: true },
-  { month: "March",     shortMonth: "MAR", completionPct: 0.65, earned: true },
-  { month: "April",     shortMonth: "APR", completionPct: 0.95, earned: true },
-  { month: "May",       shortMonth: "MAY", completionPct: 0.71, earned: true },
-  ...MONTH_NAMES.slice(5).map((m, i) => ({
-    month: m,
-    shortMonth: MONTH_SHORT[i + 5],
-    completionPct: 0,
-    earned: false,
-  })),
-];
+const MONTHLY_DATA_2025: MonthRecord[] = MONTH_NAMES.map((m, i) => ({
+  month: m,
+  shortMonth: MONTH_SHORT[i],
+  completionPct: 0,
+  earned: false,
+}));
 
 const YEARLY_DATA: YearRecord[] = [
-  { year: 2023, goalsMetPct: 0.55, inProgress: false },
-  { year: 2024, goalsMetPct: 0.78, inProgress: false },
-  { year: 2025, goalsMetPct: 0,    inProgress: true },
+  { year: 2025, goalsMetPct: 0, inProgress: true },
 ];
 
 /* ---------- helpers ---------- */

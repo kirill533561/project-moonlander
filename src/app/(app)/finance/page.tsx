@@ -45,64 +45,7 @@ const MONTHS = [
 
 const YEARS = [2021, 2022, 2023, 2024, 2025];
 
-const DEFAULT_VARIABLES: FinanceVariable[] = [
-  {
-    id: "salary",
-    name: "Salary",
-    type: "income_source",
-    fields: ["amount"],
-  },
-  {
-    id: "expenses",
-    name: "Expenses",
-    type: "expense_category",
-    fields: ["amount", "pure_living_expenses"],
-  },
-  {
-    id: "degiro",
-    name: "Degiro",
-    type: "investment_account",
-    fields: [
-      "in_out",
-      "portfolio",
-      "cash_outstanding",
-      "total_pl",
-      "change_vs_prev",
-      "dividends",
-    ],
-  },
-  {
-    id: "ibkr",
-    name: "IBKR",
-    type: "investment_account",
-    fields: [
-      "in_out",
-      "portfolio",
-      "cash_outstanding",
-      "total_pl",
-      "change_vs_prev",
-      "dividends",
-    ],
-  },
-  {
-    id: "coinbase",
-    name: "Coinbase",
-    type: "investment_account",
-    fields: ["in_out", "portfolio", "change_vs_prev", "cash_outstanding"],
-  },
-  {
-    id: "wise_bunq",
-    name: "Wise + Bunq",
-    type: "bank_account",
-    fields: ["in_out", "balance_eur", "change_vs_prev"],
-  },
-  {
-    id: "befrank",
-    name: "BeFrank",
-    type: "investment_account",
-    fields: ["portfolio", "cash_outstanding", "total_pl"],
-  },
-];
+const DEFAULT_VARIABLES: FinanceVariable[] = [];
 
 // ─── Mock data generator ──────────────────────────────────────────────────────
 
