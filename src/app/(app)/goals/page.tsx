@@ -194,6 +194,22 @@ export default function GoalsPage() {
     });
   }, []);
 
+  const deleteDream = useCallback((id: string) => {
+    setDreams((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  const deleteEconomicGoal = useCallback((id: string) => {
+    setEconomic((prev) => prev.filter((g) => g.id !== id));
+  }, []);
+
+  const deleteWishItem = useCallback((id: string) => {
+    setWishlist((prev) => prev.filter((w) => w.id !== id));
+  }, []);
+
+  const deletePersonalGoal = useCallback((id: string) => {
+    setPersonal((prev) => prev.filter((g) => g.id !== id));
+  }, []);
+
   const addDream = useCallback(() => {
     if (!newDreamName.trim()) return;
     setDreams((prev) => [
@@ -351,30 +367,30 @@ export default function GoalsPage() {
 
       {/* ===== Goal Sections Tabs ===== */}
       <Tabs defaultValue="dreams" className="w-full">
-        <TabsList className="w-full flex flex-wrap gap-1 bg-transparent h-auto p-0 mb-4">
+        <TabsList className="w-full grid grid-cols-2 gap-2 bg-transparent h-auto p-0 mb-6">
           <TabsTrigger
             value="dreams"
-            className="pixel-btn pixel-btn-purple px-3 py-2 font-pixel text-[8px] data-[state=active]:bg-pixel-purple data-[state=active]:text-space-dark flex-1 min-w-[120px]"
+            className="pixel-btn pixel-btn-purple px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-purple data-[state=active]:text-space-dark"
           >
-            DREAMS
+            🌙 DREAMS
           </TabsTrigger>
           <TabsTrigger
             value="economic"
-            className="pixel-btn pixel-btn-gold px-3 py-2 font-pixel text-[8px] data-[state=active]:bg-pixel-gold data-[state=active]:text-space-dark flex-1 min-w-[120px]"
+            className="pixel-btn pixel-btn-gold px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-gold data-[state=active]:text-space-dark"
           >
-            ECONOMIC
+            💰 ECONOMIC
           </TabsTrigger>
           <TabsTrigger
             value="wishlist"
-            className="pixel-btn px-3 py-2 font-pixel text-[8px] data-[state=active]:bg-pixel-cyan data-[state=active]:text-space-dark flex-1 min-w-[120px]"
+            className="pixel-btn px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-cyan data-[state=active]:text-space-dark"
           >
-            THINGS I WANT
+            ⭐ WISHLIST
           </TabsTrigger>
           <TabsTrigger
             value="personal"
-            className="pixel-btn pixel-btn-green px-3 py-2 font-pixel text-[8px] data-[state=active]:bg-pixel-green data-[state=active]:text-space-dark flex-1 min-w-[120px]"
+            className="pixel-btn pixel-btn-green px-3 py-3 font-pixel-body text-lg data-[state=active]:bg-pixel-green data-[state=active]:text-space-dark"
           >
-            PERSONAL DEV
+            💪 PERSONAL
           </TabsTrigger>
         </TabsList>
 
@@ -391,23 +407,30 @@ export default function GoalsPage() {
                 className="pixel-card p-4 flex items-center justify-between gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-pixel-body text-lg text-white truncate">
+                  <p className="font-pixel-body text-xl text-white truncate">
                     {dream.name}
                   </p>
                 </div>
-                <button
-                  onClick={() => toggleDream(dream.id)}
-                  className={`pixel-btn w-12 h-12 flex items-center justify-center text-xl shrink-0 ${
-                    dream.achieved ? "pixel-btn-green" : ""
-                  }`}
-                  aria-label={`Toggle ${dream.name}`}
-                >
-                  {dream.achieved ? (
-                    <span className="text-pixel-green">&#10003;</span>
-                  ) : (
-                    <span className="text-pixel-red">&#10007;</span>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => toggleDream(dream.id)}
+                    className={`pixel-btn w-12 h-12 flex items-center justify-center text-xl ${
+                      dream.achieved ? "pixel-btn-green" : ""
+                    }`}
+                  >
+                    {dream.achieved ? (
+                      <span className="text-pixel-green">&#10003;</span>
+                    ) : (
+                      <span className="text-pixel-red">&#10007;</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => deleteDream(dream.id)}
+                    className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             ))}
 
@@ -450,20 +473,28 @@ export default function GoalsPage() {
                 <div key={goal.id} className="pixel-card p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-pixel-body text-lg text-white">
+                      <p className="font-pixel-body text-xl text-white">
                         {goal.name}
                       </p>
-                      <p className="font-pixel-body text-sm text-gray-500 mt-1">
+                      <p className="font-pixel-body text-base text-gray-500 mt-1">
                         {goal.targetType === "cumulative" ? "Cumulative" : "End of Year"} target
                       </p>
                     </div>
-                    <span className="text-xl shrink-0">
-                      {achieved ? (
-                        <span className="text-pixel-green">&#10003;</span>
-                      ) : (
-                        <span className="text-pixel-red">&#10007;</span>
-                      )}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xl">
+                        {achieved ? (
+                          <span className="text-pixel-green">&#10003;</span>
+                        ) : (
+                          <span className="text-pixel-red">&#10007;</span>
+                        )}
+                      </span>
+                      <button
+                        onClick={() => deleteEconomicGoal(goal.id)}
+                        className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   {/* Progress bar */}
@@ -563,14 +594,22 @@ export default function GoalsPage() {
 
             {wishlist.map((item) => (
               <div key={item.id} className="pixel-card p-4 flex flex-col gap-3">
-                <p className="font-pixel-body text-lg text-white">
-                  {item.name}
-                  {item.achievedMonth !== null && (
-                    <span className="text-pixel-green ml-2">
-                      &#10003; {MONTHS[item.achievedMonth]}
-                    </span>
-                  )}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-pixel-body text-xl text-white">
+                    {item.name}
+                    {item.achievedMonth !== null && (
+                      <span className="text-pixel-green ml-2">
+                        &#10003; {MONTHS[item.achievedMonth]}
+                      </span>
+                    )}
+                  </p>
+                  <button
+                    onClick={() => deleteWishItem(item.id)}
+                    className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2 shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
 
                 {/* Month grid */}
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
@@ -649,33 +688,40 @@ export default function GoalsPage() {
                 <div key={goal.id} className="pixel-card p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-pixel-body text-lg text-white">
+                      <p className="font-pixel-body text-xl text-white">
                         {goal.name}
                       </p>
-                      <p className="font-pixel-body text-sm text-gray-500">
-                        {goal.trackingType === "counter" ? "Counter" : "Ratio"} | Yearly avg: {yearlyAvg}
+                      <p className="font-pixel-body text-base text-gray-500">
+                        {goal.trackingType === "counter" ? "Counter" : "Ratio"} | Avg: {yearlyAvg}
                       </p>
                     </div>
 
-                    {/* Counter: big + button for current month */}
-                    {goal.trackingType === "counter" &&
-                      selectedYear === CURRENT_YEAR && (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-pixel-body text-xl text-pixel-green">
-                            {currentMonthVal}
-                            <span className="text-gray-500">
-                              /{goal.monthlyTarget}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Counter: big + button for current month */}
+                      {goal.trackingType === "counter" &&
+                        selectedYear === CURRENT_YEAR && (
+                          <>
+                            <span className="font-pixel-body text-2xl text-pixel-green">
+                              {currentMonthVal}
+                              <span className="text-gray-500">
+                                /{goal.monthlyTarget}
+                              </span>
                             </span>
-                          </span>
-                          <button
-                            onClick={() => incrementCounter(goal.id)}
-                            className="pixel-btn pixel-btn-green w-14 h-14 flex items-center justify-center text-3xl shrink-0"
-                            aria-label={`Increment ${goal.name}`}
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
+                            <button
+                              onClick={() => incrementCounter(goal.id)}
+                              className="pixel-btn pixel-btn-green w-14 h-14 flex items-center justify-center text-3xl"
+                            >
+                              +
+                            </button>
+                          </>
+                        )}
+                      <button
+                        onClick={() => deletePersonalGoal(goal.id)}
+                        className="font-pixel-body text-lg text-pixel-red hover:text-red-300 px-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   {/* Monthly progress grid */}
