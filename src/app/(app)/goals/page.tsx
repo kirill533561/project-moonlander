@@ -284,7 +284,7 @@ export default function GoalsPage() {
             onClick={() => setSelectedYear(year)}
             className={`pixel-btn px-4 py-2 text-sm ${
               selectedYear === year
-                ? "bg-pixel-cyan !text-space-dark"
+                ? "bg-pixel-cyan pixel-btn-active"
                 : ""
             }`}
           >
@@ -297,25 +297,25 @@ export default function GoalsPage() {
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => setActiveTab("dreams")}
-          className={`pixel-btn pixel-btn-purple py-3 font-pixel-body text-lg ${activeTab === "dreams" ? "bg-pixel-purple !text-space-dark" : ""}`}
+          className={`pixel-btn pixel-btn-purple py-3 font-pixel-body text-lg ${activeTab === "dreams" ? "bg-pixel-purple pixel-btn-active" : ""}`}
         >
           🌙 DREAMS
         </button>
         <button
           onClick={() => setActiveTab("economic")}
-          className={`pixel-btn pixel-btn-gold py-3 font-pixel-body text-lg ${activeTab === "economic" ? "bg-pixel-gold !text-space-dark" : ""}`}
+          className={`pixel-btn pixel-btn-gold py-3 font-pixel-body text-lg ${activeTab === "economic" ? "bg-pixel-gold pixel-btn-active" : ""}`}
         >
           💰 ECONOMIC
         </button>
         <button
           onClick={() => setActiveTab("wishlist")}
-          className={`pixel-btn py-3 font-pixel-body text-lg ${activeTab === "wishlist" ? "bg-pixel-cyan !text-space-dark" : ""}`}
+          className={`pixel-btn py-3 font-pixel-body text-lg ${activeTab === "wishlist" ? "bg-pixel-cyan pixel-btn-active" : ""}`}
         >
           ⭐ WISHLIST
         </button>
         <button
           onClick={() => setActiveTab("personal")}
-          className={`pixel-btn pixel-btn-green py-3 font-pixel-body text-lg ${activeTab === "personal" ? "bg-pixel-green !text-space-dark" : ""}`}
+          className={`pixel-btn pixel-btn-green py-3 font-pixel-body text-lg ${activeTab === "personal" ? "bg-pixel-green pixel-btn-active" : ""}`}
         >
           💪 PERSONAL
         </button>
@@ -488,7 +488,7 @@ export default function GoalsPage() {
                       onClick={() => setNewEconType("cumulative")}
                       className={`pixel-btn flex-1 px-3 py-2 font-pixel-body text-base ${
                         newEconType === "cumulative"
-                          ? "pixel-btn-gold bg-pixel-gold !text-space-dark"
+                          ? "pixel-btn-gold bg-pixel-gold pixel-btn-active"
                           : "pixel-btn-gold"
                       }`}
                     >
@@ -498,7 +498,7 @@ export default function GoalsPage() {
                       onClick={() => setNewEconType("end_of_year")}
                       className={`pixel-btn flex-1 px-3 py-2 font-pixel-body text-base ${
                         newEconType === "end_of_year"
-                          ? "pixel-btn-gold bg-pixel-gold !text-space-dark"
+                          ? "pixel-btn-gold bg-pixel-gold pixel-btn-active"
                           : "pixel-btn-gold"
                       }`}
                     >
@@ -756,7 +756,7 @@ export default function GoalsPage() {
                       onClick={() => setNewPersType("counter")}
                       className={`pixel-btn flex-1 px-3 py-2 font-pixel-body text-base ${
                         newPersType === "counter"
-                          ? "pixel-btn-green bg-pixel-green !text-space-dark"
+                          ? "pixel-btn-green bg-pixel-green pixel-btn-active"
                           : "pixel-btn-green"
                       }`}
                     >
@@ -766,7 +766,7 @@ export default function GoalsPage() {
                       onClick={() => setNewPersType("ratio")}
                       className={`pixel-btn flex-1 px-3 py-2 font-pixel-body text-base ${
                         newPersType === "ratio"
-                          ? "pixel-btn-green bg-pixel-green !text-space-dark"
+                          ? "pixel-btn-green bg-pixel-green pixel-btn-active"
                           : "pixel-btn-green"
                       }`}
                     >

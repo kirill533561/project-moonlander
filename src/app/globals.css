@@ -151,7 +151,7 @@
 
 .pixel-btn:hover {
   background: #00ffff;
-  color: #0a0a1a;
+  color: #050520;
   box-shadow: 2px 2px 0 #00808080;
   transform: translate(2px, 2px);
 }
@@ -169,7 +169,7 @@
 
 .pixel-btn-gold:hover {
   background: #ffd700;
-  color: #0a0a1a;
+  color: #050520;
 }
 
 .pixel-btn-green {
@@ -180,7 +180,7 @@
 
 .pixel-btn-green:hover {
   background: #00ff41;
-  color: #0a0a1a;
+  color: #050520;
 }
 
 .pixel-btn-purple {
@@ -191,7 +191,13 @@
 
 .pixel-btn-purple:hover {
   background: #b967ff;
-  color: #0a0a1a;
+  color: #050520;
+}
+
+/* Active button state (when selected) */
+.pixel-btn-active {
+  color: #050520 !important;
+  font-weight: bold;
 }
 
 /* 8-bit progress bar */
@@ -229,28 +235,103 @@
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(1px 1px at 20% 30%, #ffffff44, transparent),
-    radial-gradient(1px 1px at 40% 70%, #ffffff33, transparent),
-    radial-gradient(1px 1px at 60% 20%, #ffffff22, transparent),
-    radial-gradient(1px 1px at 80% 50%, #ffffff44, transparent),
-    radial-gradient(2px 2px at 10% 80%, #00ffff22, transparent),
-    radial-gradient(2px 2px at 70% 10%, #b967ff22, transparent),
-    radial-gradient(1px 1px at 90% 90%, #ffffff33, transparent),
-    radial-gradient(1px 1px at 50% 50%, #ffffff22, transparent),
-    radial-gradient(1px 1px at 30% 60%, #ffffff44, transparent),
-    radial-gradient(1px 1px at 15% 45%, #ffffff33, transparent),
-    radial-gradient(1px 1px at 85% 35%, #ffffff22, transparent),
-    radial-gradient(1px 1px at 45% 85%, #ffffff44, transparent),
-    radial-gradient(1px 1px at 75% 65%, #ffffff33, transparent),
-    radial-gradient(1px 1px at 5% 15%, #ffffff22, transparent),
-    radial-gradient(1px 1px at 55% 5%, #ffffff44, transparent),
-    radial-gradient(1px 1px at 95% 75%, #ffffff33, transparent);
+    radial-gradient(1px 1px at 20% 30%, #ffffff66, transparent),
+    radial-gradient(1px 1px at 40% 70%, #ffffff55, transparent),
+    radial-gradient(1.5px 1.5px at 60% 20%, #ffffff44, transparent),
+    radial-gradient(1px 1px at 80% 50%, #ffffff66, transparent),
+    radial-gradient(2px 2px at 10% 80%, #00ffff33, transparent),
+    radial-gradient(2px 2px at 70% 10%, #b967ff33, transparent),
+    radial-gradient(1px 1px at 90% 90%, #ffffff55, transparent),
+    radial-gradient(1.5px 1.5px at 50% 50%, #ffffff44, transparent),
+    radial-gradient(1px 1px at 30% 60%, #ffffff66, transparent),
+    radial-gradient(1px 1px at 15% 45%, #ffffff55, transparent),
+    radial-gradient(2px 2px at 85% 35%, #ffd70022, transparent),
+    radial-gradient(1px 1px at 45% 85%, #ffffff66, transparent),
+    radial-gradient(1.5px 1.5px at 75% 65%, #ffffff55, transparent),
+    radial-gradient(1px 1px at 5% 15%, #ffffff44, transparent),
+    radial-gradient(2px 2px at 55% 5%, #00ffff22, transparent),
+    radial-gradient(1px 1px at 95% 75%, #ffffff55, transparent),
+    radial-gradient(1px 1px at 25% 10%, #ffffff44, transparent),
+    radial-gradient(1.5px 1.5px at 65% 90%, #ffffff33, transparent),
+    radial-gradient(1px 1px at 35% 40%, #ffffff55, transparent),
+    radial-gradient(2px 2px at 88% 15%, #b967ff22, transparent);
   animation: twinkle 4s ease-in-out infinite alternate;
 }
 
+/* Moon */
+.star-field::before {
+  content: "";
+  position: fixed;
+  top: 5%;
+  right: 8%;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd70044, #ffd70022 50%, transparent 70%);
+  box-shadow:
+    0 0 20px #ffd70015,
+    0 0 60px #ffd70008;
+  animation: moon-glow 6s ease-in-out infinite alternate;
+}
+
+/* Shooting stars */
+.star-field::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
 @keyframes twinkle {
-  0% { opacity: 0.6; }
+  0% { opacity: 0.5; }
+  50% { opacity: 0.8; }
   100% { opacity: 1; }
+}
+
+@keyframes moon-glow {
+  0% { box-shadow: 0 0 20px #ffd70015, 0 0 60px #ffd70008; }
+  100% { box-shadow: 0 0 30px #ffd70025, 0 0 80px #ffd70012; }
+}
+
+@keyframes shoot {
+  0% { transform: translateX(0) translateY(0); opacity: 1; }
+  100% { transform: translateX(-300px) translateY(300px); opacity: 0; }
+}
+
+/* Twinkling individual stars */
+.star-field-sparkle-1,
+.star-field-sparkle-2,
+.star-field-sparkle-3 {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
+  background: white;
+}
+
+.star-field-sparkle-1 {
+  width: 2px; height: 2px;
+  top: 12%; left: 25%;
+  animation: sparkle-pulse 2s ease-in-out infinite;
+}
+.star-field-sparkle-2 {
+  width: 3px; height: 3px;
+  top: 45%; left: 78%;
+  animation: sparkle-pulse 3s ease-in-out infinite 1s;
+}
+.star-field-sparkle-3 {
+  width: 2px; height: 2px;
+  top: 72%; left: 42%;
+  animation: sparkle-pulse 2.5s ease-in-out infinite 0.5s;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); box-shadow: 0 0 2px white; }
+  50% { opacity: 1; transform: scale(1.8); box-shadow: 0 0 8px #00ffff, 0 0 15px #00ffff44; }
 }
 
 @keyframes float {
