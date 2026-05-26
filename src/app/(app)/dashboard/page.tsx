@@ -256,9 +256,9 @@ export default function DashboardPage() {
       <div className="pixel-card p-4 text-center overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pixel-purple/5 to-transparent animate-pulse" />
         <p className="font-pixel text-[9px] text-pixel-purple/80 leading-relaxed relative">
-          &quot;SHOOT FOR THE MOON. EVEN IF YOU MISS,
+          &quot;DISCIPLINE IS CHOOSING BETWEEN WHAT YOU WANT NOW
           <br className="hidden sm:block" />{" "}
-          YOU&apos;LL LAND AMONG THE STARS.&quot;
+          AND WHAT YOU WANT MOST.&quot;
         </p>
       </div>
 
