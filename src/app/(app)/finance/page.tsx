@@ -43,7 +43,7 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-const YEARS = [2021, 2022, 2023, 2024, 2025];
+const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
 
 const DEFAULT_VARIABLES: FinanceVariable[] = [];
 
@@ -112,6 +112,221 @@ const TYPE_LABELS: Record<VariableType, string> = {
 
 const INPUT_CLASS =
   "bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body px-2 py-1.5 w-full focus:border-pixel-cyan focus:outline-none text-sm";
+
+// ─── CSV Import Logic ────────────────────────────────────────────────────────
+
+const INVESTMENT_IBANS: Record<string, string> = {
+  "NL16TRBK4296071611": "Trade Republic",
+  "NL80BUNQ2141986478": "Bunq Savings",
+  "NL33ABNA0577685503": "Degiro",
+  "DE75202208000000019190": "Coinbase",
+};
+
+const BUNQ_TOPUP_IBAN = "NL04ADYB2017400157";
+const SALARY_KEYWORDS = ["salaris", "salary"];
+
+interface ParsedMonth {
+  year: number;
+  month: number;
+  salary: number;
+  expenses: number;
+  investments: Record<string, number>;
+  bunqTopups: number;
+  otherIncome: number;
+  balanceEnd: string;
+  txCount: number;
+}
+
+function parseRaboCSV(text: string): ParsedMonth[] {
+  const lines = text.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return [];
+
+  const header = lines[0];
+  const cols = header.split(",").map((c) => c.replace(/"/g, "").trim());
+  const dateIdx = cols.indexOf("Datum");
+  const amountIdx = cols.indexOf("Bedrag");
+  const balanceIdx = cols.indexOf("Saldo na trn");
+  const counterIbanIdx = cols.indexOf("Tegenrekening IBAN/BBAN");
+  const desc1Idx = cols.findIndex((c) => c.startsWith("Omschrijving-1") || c.startsWith("Omschrijving"));
+  const desc2Idx = cols.findIndex((c) => c === "Omschrijving-2");
+
+  if (dateIdx === -1 || amountIdx === -1) return [];
+
+  const monthly: Record<string, ParsedMonth> = {};
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCSVRow(lines[i]);
+    if (row.length <= amountIdx) continue;
+
+    const date = row[dateIdx]?.trim();
+    if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+
+    const [yearStr, monthStr] = date.split("-");
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
+    const key = `${year}-${month}`;
+
+    if (!monthly[key]) {
+      monthly[key] = {
+        year, month, salary: 0, expenses: 0,
+        investments: {}, bunqTopups: 0, otherIncome: 0,
+        balanceEnd: "", txCount: 0,
+      };
+    }
+
+    const m = monthly[key];
+    const amount = parseFloat(row[amountIdx].replace(/"/g, "").replace(/\./g, "").replace(",", ".").replace("+", ""));
+    const counterIban = (row[counterIbanIdx] || "").replace(/"/g, "").trim();
+    const desc1 = (row[desc1Idx] || "").replace(/"/g, "").trim().toLowerCase();
+    const desc2 = desc2Idx >= 0 ? (row[desc2Idx] || "").replace(/"/g, "").trim().toLowerCase() : "";
+    const fullDesc = `${desc1} ${desc2}`;
+
+    m.txCount++;
+    m.balanceEnd = (row[balanceIdx] || "").replace(/"/g, "").trim();
+
+    if (amount > 0 && SALARY_KEYWORDS.some((kw) => fullDesc.includes(kw))) {
+      m.salary += amount;
+    } else if (amount < 0 && counterIban in INVESTMENT_IBANS) {
+      const name = INVESTMENT_IBANS[counterIban];
+      m.investments[name] = (m.investments[name] || 0) + Math.abs(amount);
+    } else if (amount < 0 && counterIban === BUNQ_TOPUP_IBAN) {
+      m.bunqTopups += Math.abs(amount);
+    } else if (amount > 0) {
+      m.otherIncome += amount;
+    } else if (amount < 0) {
+      m.expenses += Math.abs(amount);
+    }
+  }
+
+  return Object.values(monthly).sort((a, b) => a.year - b.year || a.month - b.month);
+}
+
+function parseCSVRow(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function ImportCSVDialog({
+  onImport,
+}: {
+  onImport: (data: ParsedMonth[], vars: FinanceVariable[]) => void;
+}) {
+  const [parsed, setParsed] = useState<ParsedMonth[] | null>(null);
+  const [fileName, setFileName] = useState("");
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const result = parseRaboCSV(text);
+      setParsed(result);
+    };
+    reader.readAsText(file, "latin1");
+  };
+
+  const handleImport = () => {
+    if (!parsed) return;
+
+    const vars: FinanceVariable[] = [
+      { id: "salary", name: "Salary", type: "income_source", fields: ["amount"] },
+      { id: "expenses", name: "Expenses", type: "expense_category", fields: ["amount"] },
+      { id: "other_income", name: "Other Income", type: "income_source", fields: ["amount"] },
+      { id: "bunq_topups", name: "Bunq Top-ups", type: "bank_account", fields: ["amount"] },
+    ];
+
+    const investmentNames = new Set<string>();
+    parsed.forEach((m) => Object.keys(m.investments).forEach((n) => investmentNames.add(n)));
+    investmentNames.forEach((name) => {
+      const id = name.toLowerCase().replace(/\s+/g, "_");
+      vars.push({ id, name, type: "investment_account", fields: ["amount"] });
+    });
+
+    onImport(parsed, vars);
+  };
+
+  const totalMonths = parsed?.length || 0;
+  const yearRange = parsed && parsed.length > 0
+    ? `${parsed[0].year} - ${parsed[parsed.length - 1].year}`
+    : "";
+
+  return (
+    <Dialog>
+      <DialogTrigger className="pixel-btn pixel-btn-green px-3 py-2 text-sm">
+        📥 Import CSV
+      </DialogTrigger>
+      <DialogContent className="bg-[#0f0f2a] border-2 border-[#2a2a4a] text-white max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-xs text-pixel-green">
+            IMPORT BANK CSV
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 mt-2">
+          <p className="font-pixel-body text-base text-gray-400">
+            Upload a Rabobank CSV export. The parser will auto-detect salary, expenses, and investment transfers.
+          </p>
+
+          <label className="pixel-btn pixel-btn-green py-3 text-center cursor-pointer">
+            {fileName || "CHOOSE FILE"}
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFile}
+              className="hidden"
+            />
+          </label>
+
+          {parsed && (
+            <div className="pixel-card p-3 space-y-2">
+              <p className="font-pixel text-[9px] text-pixel-cyan">PREVIEW</p>
+              <p className="font-pixel-body text-base text-white">
+                {totalMonths} months found ({yearRange})
+              </p>
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {parsed.map((m) => (
+                  <div key={`${m.year}-${m.month}`} className="flex justify-between font-pixel-body text-sm border-b border-[#2a2a4a]/50 py-1">
+                    <span className="text-gray-400">
+                      {MONTHS[m.month - 1]} {m.year}
+                    </span>
+                    <span className="text-pixel-green">+{m.salary.toFixed(0)}</span>
+                    <span className="text-pixel-red">-{m.expenses.toFixed(0)}</span>
+                    <span className="text-gray-500">{m.txCount}tx</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {parsed && parsed.length > 0 && (
+            <DialogClose
+              onClick={handleImport}
+              className="pixel-btn pixel-btn-green py-3 text-lg w-full"
+            >
+              IMPORT {totalMonths} MONTHS
+            </DialogClose>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // ─── Configure Dialog ─────────────────────────────────────────────────────────
 
@@ -575,7 +790,7 @@ export default function FinancePage() {
   const [allData, setAllData] = useState<Record<number, YearData>>(() =>
     generateMockData(DEFAULT_VARIABLES)
   );
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(0);
   const [comments, setComments] = useState<Record<string, string>>({});
 
@@ -592,6 +807,32 @@ export default function FinancePage() {
       updated[selectedYear] = yearData;
       return updated;
     });
+  }
+
+  function handleCSVImport(data: ParsedMonth[], newVars: FinanceVariable[]) {
+    setVariables(newVars);
+    setAllData(() => {
+      const updated: Record<number, YearData> = {};
+      for (const m of data) {
+        if (!updated[m.year]) updated[m.year] = {};
+        const monthData: MonthData = {};
+        monthData["salary"] = { amount: m.salary };
+        monthData["expenses"] = { amount: m.expenses };
+        monthData["other_income"] = { amount: m.otherIncome };
+        monthData["bunq_topups"] = { amount: m.bunqTopups };
+        for (const [name, val] of Object.entries(m.investments)) {
+          const id = name.toLowerCase().replace(/\s+/g, "_");
+          monthData[id] = { amount: val };
+        }
+        updated[m.year][m.month - 1] = monthData;
+      }
+      return updated;
+    });
+    if (data.length > 0) {
+      const last = data[data.length - 1];
+      setSelectedYear(last.year);
+      setSelectedMonth(last.month - 1);
+    }
   }
 
   function handleSaveVariables(newVars: FinanceVariable[]) {
@@ -662,7 +903,10 @@ export default function FinancePage() {
           </div>
         </div>
 
-        <ConfigureDialog variables={variables} onSave={handleSaveVariables} />
+        <div className="flex gap-2">
+          <ImportCSVDialog onImport={handleCSVImport} />
+          <ConfigureDialog variables={variables} onSave={handleSaveVariables} />
+        </div>
       </div>
 
       {/* Current selection label */}
