@@ -36,7 +36,7 @@ export default function DashboardPage() {
 
   const [financeData] = useLocalStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
   const [financeVars] = useLocalStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
-  const [dreams] = useLocalStorage<{ id: string; name: string; achieved: boolean }[]>("ml-goals-dreams", []);
+  const [dreams] = useLocalStorage<{ id: string; name: string; achieved: boolean; target?: number | null; current?: number | null }[]>("ml-goals-dreams", []);
 
   // Global date range (as month index: year*12+month)
   const [rangeMin, setRangeMin] = useState(0);
