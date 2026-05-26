@@ -36,6 +36,7 @@ export default function DashboardPage() {
 
   const [financeData] = useLocalStorage<Record<number, Record<number, Record<string, Record<string, number>>>>>("ml-finance-data", {});
   const [financeVars] = useLocalStorage<{ id: string; name: string; type: string; fields: string[] }[]>("ml-finance-vars", []);
+  const [dreams] = useLocalStorage<{ id: string; name: string; achieved: boolean }[]>("ml-goals-dreams", []);
 
   // Global date range (as month index: year*12+month)
   const [rangeMin, setRangeMin] = useState(0);
@@ -251,6 +252,103 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ===== INSPIRING QUOTE ===== */}
+      <div className="pixel-card p-4 text-center overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pixel-purple/5 to-transparent animate-pulse" />
+        <p className="font-pixel text-[9px] text-pixel-purple/80 leading-relaxed relative">
+          &quot;SHOOT FOR THE MOON. EVEN IF YOU MISS,
+          <br className="hidden sm:block" />{" "}
+          YOU&apos;LL LAND AMONG THE STARS.&quot;
+        </p>
+      </div>
+
+      {/* ===== QUICK COUNTERS (TOP PRIORITY) ===== */}
+      <div className="pixel-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-pixel text-xs text-pixel-green">QUICK COUNTERS</h3>
+          <Dialog>
+            <DialogTrigger className="pixel-btn pixel-btn-green text-base px-3 py-1">+ ADD</DialogTrigger>
+            <DialogContent className="bg-[#0f0f2a] border-2 border-[#2a2a4a] max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="font-pixel text-xs text-pixel-green">NEW COUNTER</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-3 mt-2">
+                <input placeholder="Counter name..." value={newName} onChange={(e) => setNewName(e.target.value)}
+                  className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
+                <input type="number" placeholder="Monthly target..." value={newTarget} onChange={(e) => setNewTarget(e.target.value)}
+                  className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" placeholder="Step (e.g. 1)" value={newStep} onChange={(e) => setNewStep(e.target.value)}
+                    className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
+                  <input placeholder="Unit" value={newUnit} onChange={(e) => setNewUnit(e.target.value)}
+                    className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
+                </div>
+                <DialogClose onClick={addCounter} className="pixel-btn pixel-btn-green py-3 text-lg w-full">CREATE COUNTER</DialogClose>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+        {activeCounters.length === 0 ? (
+          <p className="font-pixel-body text-lg text-gray-500 text-center py-4">No counters yet — tap + ADD</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {activeCounters.map((goal) => {
+              const current = activeCounts[goal.id] ?? 0;
+              const done = current >= goal.monthlyTarget;
+              return (
+                <div key={goal.id} className="bg-[#1a1a3a] border border-[#2a2a4a] p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <p className="font-pixel text-[9px] text-pixel-cyan truncate">{goal.name.toUpperCase()}</p>
+                    {!demoMode && (
+                      <button onClick={() => deleteCounter(goal.id)} className="font-pixel-body text-base text-pixel-red px-1">✕</button>
+                    )}
+                  </div>
+                  <div className="pixel-progress h-3">
+                    <div className={`pixel-progress-fill ${done ? "bg-pixel-gold" : "bg-pixel-green"}`}
+                      style={{ width: `${Math.min((current / goal.monthlyTarget) * 100, 100)}%` }} />
+                  </div>
+                  <div className="flex items-center justify-center gap-4">
+                    <button onClick={() => decrement(goal.id, goal.step)} className="pixel-btn w-12 h-12 flex items-center justify-center text-2xl">-</button>
+                    <div className="text-center">
+                      <span className="font-pixel-body text-3xl text-white">{current}</span>
+                      <span className="font-pixel-body text-lg text-gray-500"> / {goal.monthlyTarget}</span>
+                    </div>
+                    <button onClick={() => increment(goal.id, goal.step)} className="pixel-btn pixel-btn-green w-12 h-12 flex items-center justify-center text-2xl">+</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ===== LONG-RANGE DREAMS OVERVIEW ===== */}
+      {dreams.length > 0 && (
+        <div className="pixel-card p-4">
+          <h3 className="font-pixel text-xs text-pixel-purple mb-3">LONG-RANGE DREAMS</h3>
+          <div className="flex flex-col gap-2">
+            {dreams.map((dream) => (
+              <div key={dream.id} className="flex items-center gap-3 py-1">
+                <span className={`text-xl ${dream.achieved ? "text-pixel-green" : "text-pixel-purple/60"}`}>
+                  {dream.achieved ? "★" : "☆"}
+                </span>
+                <span className={`font-pixel-body text-lg flex-1 ${dream.achieved ? "text-pixel-green line-through" : "text-gray-300"}`}>
+                  {dream.name}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-[#2a2a4a] flex items-center justify-between">
+            <span className="font-pixel-body text-base text-gray-500">
+              {dreams.filter((d) => d.achieved).length} / {dreams.length} achieved
+            </span>
+            <div className="pixel-progress flex-1 ml-3 h-3">
+              <div className="pixel-progress-fill bg-pixel-purple" style={{ width: `${dreams.length > 0 ? (dreams.filter((d) => d.achieved).length / dreams.length) * 100 : 0}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== DATE RANGE SLIDER ===== */}
       {hasFinanceData && (
         <div className="pixel-card p-4">
@@ -403,69 +501,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* ===== QUICK COUNTERS ===== */}
-      <div className="pixel-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-pixel text-xs text-pixel-green">QUICK COUNTERS</h3>
-          <Dialog>
-            <DialogTrigger className="pixel-btn pixel-btn-green text-base px-3 py-1">+ ADD</DialogTrigger>
-            <DialogContent className="bg-[#0f0f2a] border-2 border-[#2a2a4a] max-w-sm">
-              <DialogHeader>
-                <DialogTitle className="font-pixel text-xs text-pixel-green">NEW COUNTER</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-3 mt-2">
-                <input placeholder="Counter name..." value={newName} onChange={(e) => setNewName(e.target.value)}
-                  className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
-                <input type="number" placeholder="Monthly target..." value={newTarget} onChange={(e) => setNewTarget(e.target.value)}
-                  className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
-                <div className="grid grid-cols-2 gap-3">
-                  <input type="number" placeholder="Step (e.g. 1)" value={newStep} onChange={(e) => setNewStep(e.target.value)}
-                    className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
-                  <input placeholder="Unit" value={newUnit} onChange={(e) => setNewUnit(e.target.value)}
-                    className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-lg px-3 py-2 w-full focus:border-pixel-cyan focus:outline-none" />
-                </div>
-                <DialogClose onClick={addCounter} className="pixel-btn pixel-btn-green py-3 text-lg w-full">CREATE COUNTER</DialogClose>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {activeCounters.length === 0 ? (
-          <p className="font-pixel-body text-lg text-gray-500 text-center py-4">No counters yet — tap + ADD</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {activeCounters.map((goal) => {
-              const current = activeCounts[goal.id] ?? 0;
-              const done = current >= goal.monthlyTarget;
-              return (
-                <div key={goal.id} className="bg-[#1a1a3a] border border-[#2a2a4a] p-3 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <p className="font-pixel text-[9px] text-pixel-cyan truncate">{goal.name.toUpperCase()}</p>
-                    {!demoMode && (
-                      <button onClick={() => deleteCounter(goal.id)} className="font-pixel-body text-base text-pixel-red px-1">✕</button>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-pixel-body text-2xl text-white">
-                      {current} <span className="text-gray-500 text-lg">/ {goal.monthlyTarget} {goal.unit}</span>
-                    </span>
-                  </div>
-                  <div className="pixel-progress h-3">
-                    <div className={`pixel-progress-fill ${done ? "bg-pixel-gold" : "bg-pixel-green"}`}
-                      style={{ width: `${Math.min((current / goal.monthlyTarget) * 100, 100)}%` }} />
-                  </div>
-                  <div className="flex items-center justify-center gap-4">
-                    <button onClick={() => decrement(goal.id, goal.step)} className="pixel-btn w-12 h-12 flex items-center justify-center text-2xl">-</button>
-                    <span className="font-pixel-body text-2xl text-white min-w-[50px] text-center">{current}</span>
-                    <button onClick={() => increment(goal.id, goal.step)} className="pixel-btn pixel-btn-green w-12 h-12 flex items-center justify-center text-2xl">+</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       {/* ===== NO DATA PROMPT ===== */}
       {!hasFinanceData && !demoMode && (

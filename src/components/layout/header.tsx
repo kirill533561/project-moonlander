@@ -90,6 +90,47 @@ export function Header() {
                 </button>
                 <hr className="border-[#2a2a4a]" />
                 <button
+                  onClick={() => {
+                    const keys = Object.keys(localStorage).filter((k) => k.startsWith("ml-"));
+                    const data: Record<string, string> = {};
+                    keys.forEach((k) => { data[k] = localStorage.getItem(k) || ""; });
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = `moonlander-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click(); URL.revokeObjectURL(url);
+                    setShowMenu(false);
+                  }}
+                  className="font-pixel-body text-lg text-pixel-cyan hover:text-white text-left py-1"
+                >
+                  📤 EXPORT DATA
+                </button>
+                <button
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file"; input.accept = ".json";
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        try {
+                          const data = JSON.parse(ev.target?.result as string);
+                          Object.entries(data).forEach(([k, v]) => { localStorage.setItem(k, v as string); });
+                          window.location.reload();
+                        } catch { alert("Invalid backup file"); }
+                      };
+                      reader.readAsText(file);
+                    };
+                    input.click();
+                    setShowMenu(false);
+                  }}
+                  className="font-pixel-body text-lg text-pixel-green hover:text-white text-left py-1"
+                >
+                  📥 IMPORT DATA
+                </button>
+                <hr className="border-[#2a2a4a]" />
+                <button
                   onClick={handleSignOut}
                   className="font-pixel-body text-lg text-pixel-red hover:text-red-300 text-left py-1"
                 >
