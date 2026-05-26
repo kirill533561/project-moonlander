@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { playCassettePickup, playCassetteInsert, playCassetteStart } from "@/lib/sounds";
 
 const TRACKS = [
   { src: "/music/Final_Approach.mp3", title: "FINAL APPROACH", cover: null as string | null, color: "#00ffff" },
@@ -37,8 +38,7 @@ function CassetteIcon({ playing }: { playing: boolean }) {
 
 function Reel3D({ spinning, size = 56 }: { spinning: boolean; size?: number }) {
   const spokeCount = 6;
-  const r = size / 2;
-  const inner = r * 0.7;
+  const inner = size * 0.35;
 
   return (
     <div
@@ -46,10 +46,20 @@ function Reel3D({ spinning, size = 56 }: { spinning: boolean; size?: number }) {
       style={{
         width: size,
         height: size,
-        background: "radial-gradient(circle, #1a1a2e 40%, #12122a 70%, #0a0a1a)",
-        boxShadow: "inset 0 2px 6px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.03)",
+        background: "radial-gradient(circle at 40% 35%, #22223a 0%, #14142a 50%, #0a0a1a 100%)",
+        boxShadow: "inset 0 3px 8px rgba(0,0,0,0.9), inset 0 -1px 3px rgba(255,255,255,0.03), 0 2px 4px rgba(0,0,0,0.4)",
       }}
     >
+      {/* Outer ring groove */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          inset: 3,
+          border: "1px solid rgba(255,255,255,0.04)",
+          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5)",
+        }}
+      />
+      {/* Spokes */}
       <div
         className={`absolute rounded-full ${spinning ? "animate-[spin_1.8s_linear_infinite]" : ""}`}
         style={{ width: inner * 2, height: inner * 2 }}
@@ -57,27 +67,35 @@ function Reel3D({ spinning, size = 56 }: { spinning: boolean; size?: number }) {
         {Array.from({ length: spokeCount }).map((_, i) => (
           <div
             key={i}
-            className="absolute top-1/2 left-1/2 h-px bg-gray-600/50"
+            className="absolute top-1/2 left-1/2 h-px"
             style={{
               width: inner,
               transformOrigin: "0 0",
               transform: `rotate(${(360 / spokeCount) * i}deg)`,
+              background: "linear-gradient(90deg, rgba(100,100,140,0.6), rgba(100,100,140,0.1))",
             }}
           />
         ))}
       </div>
+      {/* Center hub */}
       <div
-        className="relative z-10 rounded-full border-2 border-gray-600"
+        className="relative z-10 rounded-full"
         style={{
           width: size * 0.22,
           height: size * 0.22,
-          background: "radial-gradient(circle, #2a2a4a, #0a0a1a)",
-          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.8)",
+          background: "radial-gradient(circle at 40% 35%, #3a3a5a, #1a1a2e 60%, #0a0a1a)",
+          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05)",
+          border: "1px solid #2a2a4a",
         }}
       />
+      {/* Mid ring */}
       <div
-        className="absolute rounded-full border border-gray-700/30"
-        style={{ width: inner * 1.5, height: inner * 1.5 }}
+        className="absolute rounded-full"
+        style={{
+          width: inner * 1.5,
+          height: inner * 1.5,
+          border: "1px solid rgba(100,100,140,0.15)",
+        }}
       />
     </div>
   );
@@ -102,6 +120,10 @@ function CassetteLabel({ track }: { track: (typeof TRACKS)[number] }) {
     </div>
   );
 }
+
+const DEPTH_SHADOW = "0 1px 0 #1c1c3a, 0 2px 0 #181830, 0 3px 0 #141428, 0 4px 0 #101020, 0 5px 0 #0c0c18, 0 6px 0 #0a0a14, 0 14px 28px rgba(0,0,0,0.6)";
+const DEPTH_SHADOW_ACTIVE = (c: string) =>
+  `0 1px 0 #1c1c3a, 0 2px 0 #181830, 0 3px 0 #141428, 0 4px 0 #101020, 0 5px 0 #0c0c18, 0 6px 0 #0a0a14, 0 14px 28px rgba(0,0,0,0.6), 0 0 20px ${c}20`;
 
 export function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -130,10 +152,13 @@ export function MusicPlayer() {
         playing ? pause() : play();
         return;
       }
+      playCassettePickup();
       setInserting(idx);
+      setTimeout(() => playCassetteInsert(), 350);
       setTimeout(() => {
         setLoaded(idx);
         setInserting(null);
+        playCassetteStart();
       }, 800);
     },
     [inserting, loaded, playing, pause, play],
@@ -200,7 +225,7 @@ export function MusicPlayer() {
     <>
       <audio ref={audioRef} preload="metadata" />
 
-      {/* Header trigger button */}
+      {/* Header trigger */}
       <button
         onClick={() => setOpen(true)}
         className={`w-9 h-9 border-2 flex items-center justify-center transition-all duration-300 ${
@@ -213,7 +238,7 @@ export function MusicPlayer() {
         <CassetteIcon playing={playing} />
       </button>
 
-      {/* Full-screen modal — portaled to body to escape header stacking context */}
+      {/* Modal — portaled to body */}
       {typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
@@ -228,264 +253,324 @@ export function MusicPlayer() {
                 <div className="fixed inset-0 bg-black/85 backdrop-blur-md" onClick={() => setOpen(false)} />
 
                 <motion.div
-                  initial={{ scale: 0.85, y: 30, rotateX: 8 }}
+                  initial={{ scale: 0.85, y: 30, rotateX: 10 }}
                   animate={{ scale: 1, y: 0, rotateX: 0 }}
-                  exit={{ scale: 0.85, y: 30, rotateX: 8 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  exit={{ scale: 0.85, y: 30, opacity: 0 }}
+                  transition={{ type: "spring", damping: 22, stiffness: 280 }}
                   className="relative z-10 w-full max-w-2xl my-4"
                   style={{ perspective: 1200 }}
                 >
-              {/* Close */}
-              <button
-                onClick={() => setOpen(false)}
-                className="absolute -top-3 -right-3 w-8 h-8 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-gray-400 hover:text-white hover:border-pixel-red flex items-center justify-center font-pixel-body text-lg z-20 transition-colors"
-                style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
-              >
-                ×
-              </button>
+                  {/* Close */}
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="absolute -top-3 -right-3 w-8 h-8 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-gray-400 hover:text-white hover:border-pixel-red flex items-center justify-center font-pixel-body text-lg z-20 transition-colors"
+                    style={{ boxShadow: "0 4px 8px rgba(0,0,0,0.5)" }}
+                  >
+                    ×
+                  </button>
 
-              {/* ── Recorder body ── */}
-              <div
-                className="rounded-sm overflow-hidden"
-                style={{
-                  background: "linear-gradient(180deg, #1e1e3a 0%, #14142a 40%, #10102a 100%)",
-                  boxShadow: "0 2px 0 rgba(255,255,255,0.04) inset, 0 -1px 0 #0a0a1a inset, 0 20px 50px rgba(0,0,0,0.6), 0 4px 0 #0a0a12",
-                  border: "2px solid #2a2a4a",
-                }}
-              >
-                {/* Brand label */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                  <p className="font-pixel text-[7px] text-gray-500 tracking-[0.25em]">MOONLANDER</p>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${playing ? "bg-pixel-green shadow-[0_0_6px_#00ff41]" : "bg-gray-700"}`} />
-                    <p className="font-pixel text-[6px] text-gray-600">{playing ? "PLAY" : "STOP"}</p>
-                  </div>
-                </div>
-
-                {/* Tape window */}
-                <div
-                  className="mx-3 mb-3 p-4 relative overflow-hidden rounded-sm"
-                  style={{
-                    background: "linear-gradient(180deg, #080816 0%, #0c0c1e 100%)",
-                    boxShadow: "inset 0 4px 16px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03)",
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-5 md:gap-8">
-                    <Reel3D spinning={playing} size={52} />
-                    <div className="flex-1 max-w-[80px] flex flex-col gap-1.5">
-                      {[0.5, 0.3, 0.5].map((o, i) => (
-                        <div key={i} className="h-px rounded" style={{ backgroundColor: `rgba(139, 90, 43, ${o})` }} />
-                      ))}
-                    </div>
-                    <Reel3D spinning={playing} size={52} />
-                  </div>
-
-                  {track && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 0.6, y: 0 }}
-                      className="mt-3 mx-auto w-36 h-9 border border-[#2a2a4a] overflow-hidden rounded-sm"
-                    >
-                      <CassetteLabel track={track} />
-                    </motion.div>
-                  )}
-
-                  {!track && inserting === null && (
-                    <p className="font-pixel text-[6px] text-gray-600 text-center mt-4 tracking-wider">
-                      INSERT TAPE
-                    </p>
-                  )}
-
-                  {/* Insertion animation overlay */}
-                  <AnimatePresence>
-                    {inserting !== null && (
-                      <motion.div
-                        initial={{ y: 140, rotateX: -30, scale: 0.9, opacity: 0.9 }}
-                        animate={{ y: 0, rotateX: 0, scale: 0.7, opacity: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
-                        style={{ perspective: 600 }}
-                        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                      >
-                        <div
-                          className="w-28 h-[72px] overflow-hidden rounded-sm"
-                          style={{
-                            border: `2px solid ${TRACKS[inserting].color}60`,
-                            background: "#12122a",
-                            boxShadow: `0 0 20px ${TRACKS[inserting].color}30, 0 8px 20px rgba(0,0,0,0.5)`,
-                          }}
-                        >
-                          <div className="w-full h-10 overflow-hidden border-b border-[#2a2a4a]">
-                            <CassetteLabel track={TRACKS[inserting]} />
-                          </div>
-                          <div className="flex items-center justify-between px-5 py-1.5">
-                            <div className="w-3 h-3 rounded-full border border-gray-600" />
-                            <div className="w-3 h-3 rounded-full border border-gray-600" />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Now playing text */}
-                <div className="px-4 mb-2">
-                  <p className="font-pixel text-[7px] md:text-[8px] text-pixel-cyan text-center truncate h-4">
-                    {track ? track.title : "SELECT A CASSETTE"}
-                  </p>
-                </div>
-
-                {/* Progress bar */}
-                <div className="px-4 mb-3">
+                  {/* ── 3D Recorder body ── */}
                   <div
-                    onClick={seek}
-                    className="h-3 cursor-pointer group relative rounded-sm overflow-hidden"
+                    className="relative overflow-hidden"
                     style={{
-                      background: "#0a0a18",
-                      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.02)",
+                      background: "linear-gradient(180deg, #222244 0%, #1a1a36 8%, #14142a 40%, #10102a 100%)",
+                      border: "2px solid #33335a",
+                      borderBottom: "2px solid #1a1a30",
+                      boxShadow: `
+                        0 1px 0 rgba(255,255,255,0.06) inset,
+                        0 -1px 0 #0a0a1a inset,
+                        0 2px 0 #1a1a30,
+                        0 4px 0 #14142a,
+                        0 6px 0 #0e0e20,
+                        0 24px 60px rgba(0,0,0,0.7)
+                      `,
                     }}
                   >
-                    <motion.div
-                      className="h-full relative"
-                      style={{
-                        width: `${pct}%`,
-                        background: track
-                          ? `linear-gradient(90deg, ${track.color}90, ${track.color})`
-                          : "#00ffff",
-                        boxShadow: track ? `0 0 8px ${track.color}40` : undefined,
-                      }}
-                      transition={{ duration: 0.1 }}
-                    >
-                      <div className="absolute right-0 top-0 w-px h-full bg-white/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </motion.div>
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="font-pixel-body text-[11px] text-gray-500">{fmt(progress)}</span>
-                    <span className="font-pixel-body text-[11px] text-gray-500">{fmt(duration)}</span>
-                  </div>
-                </div>
+                    {/* Top highlight bevel */}
+                    <div
+                      className="absolute top-0 inset-x-0 h-px"
+                      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.08) 70%, transparent)" }}
+                    />
 
-                {/* Transport controls */}
-                <div className="flex items-center justify-center gap-3 px-4 pb-4">
-                  {([
-                    { label: "⏮", action: prev, w: "w-11 h-11" },
-                    { label: playing ? "⏸" : "▶", action: () => (playing ? pause() : play()), w: "w-14 h-14 text-xl" },
-                    { label: "⏭", action: next, w: "w-11 h-11" },
-                  ] as const).map((btn, i) => (
-                    <motion.button
-                      key={i}
-                      onClick={btn.action}
-                      disabled={loaded === null}
-                      whileTap={{ y: 2, boxShadow: "0 1px 0 #0a0a1a" }}
-                      className={`${btn.w} border-2 flex items-center justify-center font-pixel-body transition-colors disabled:opacity-25 disabled:cursor-not-allowed ${
-                        i === 1 && playing
-                          ? "border-pixel-cyan text-pixel-cyan"
-                          : "border-[#3a3a5a] text-gray-400 hover:border-pixel-cyan hover:text-pixel-cyan"
-                      }`}
-                      style={{
-                        background: "linear-gradient(180deg, #1e1e3a, #14142a)",
-                        boxShadow: "0 3px 0 #0a0a1a, 0 5px 12px rgba(0,0,0,0.4)",
-                      }}
-                    >
-                      {btn.label}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Tape collection ── */}
-              <p className="font-pixel text-[7px] text-gray-500 mt-5 mb-3 tracking-[0.15em]">
-                TAPE COLLECTION
-              </p>
-              <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5">
-                {TRACKS.map((t, i) => {
-                  const isLoaded = loaded === i;
-                  const isInserting = inserting === i;
-
-                  return (
-                    <motion.button
-                      key={i}
-                      onClick={() => insertCassette(i)}
-                      whileHover={!isInserting ? { y: -6, rotateX: -4, rotateY: 3 } : undefined}
-                      whileTap={!isInserting ? { scale: 0.96 } : undefined}
-                      animate={
-                        isInserting
-                          ? { y: -60, rotateX: 40, scale: 0.5, opacity: 0 }
-                          : { y: 0, rotateX: 5, rotateY: 0, scale: 1, opacity: 1 }
-                      }
-                      transition={
-                        isInserting
-                          ? { duration: 0.7, ease: [0.4, 0, 0.2, 1] }
-                          : { type: "spring", stiffness: 300, damping: 20 }
-                      }
-                      style={{ perspective: 600, transformStyle: "preserve-3d" }}
-                      className="w-full"
-                    >
-                      <div
-                        className="overflow-hidden transition-shadow duration-300"
-                        style={{
-                          background: "linear-gradient(180deg, #18183a, #10102a)",
-                          border: `2px solid ${isLoaded ? t.color : "#2a2a4a"}`,
-                          boxShadow: isLoaded
-                            ? `0 0 16px ${t.color}25, 0 8px 20px rgba(0,0,0,0.5), 0 3px 0 #0a0a12`
-                            : "0 8px 20px rgba(0,0,0,0.4), 0 3px 0 #0a0a12",
-                        }}
-                      >
-                        {/* Cover art label */}
+                    {/* Brand label */}
+                    <div className="flex items-center justify-between px-5 pt-3 pb-2">
+                      <p className="font-pixel text-[7px] text-gray-500 tracking-[0.25em]">MOONLANDER</p>
+                      <div className="flex items-center gap-2">
                         <div
-                          className="w-full h-[72px] md:h-[84px] border-b border-[#2a2a4a] overflow-hidden relative"
-                          style={{ boxShadow: "inset 0 -2px 6px rgba(0,0,0,0.4)" }}
-                        >
-                          <CassetteLabel track={t} />
-                          {isLoaded && (
-                            <div
-                              className="absolute inset-0 pointer-events-none"
-                              style={{ boxShadow: `inset 0 0 20px ${t.color}15` }}
-                            />
-                          )}
+                          className={`w-2 h-2 rounded-full transition-all duration-300 ${playing ? "bg-pixel-green" : "bg-gray-700"}`}
+                          style={playing ? { boxShadow: "0 0 6px #00ff41, 0 0 12px #00ff4140" } : {}}
+                        />
+                        <p className="font-pixel text-[6px] text-gray-600">{playing ? "PLAY" : "STOP"}</p>
+                      </div>
+                    </div>
+
+                    {/* 3D Tape window */}
+                    <div
+                      className="mx-4 mb-3 p-5 relative overflow-hidden"
+                      style={{
+                        background: "linear-gradient(180deg, #060610 0%, #0a0a1a 30%, #0c0c1e 100%)",
+                        border: "2px solid #1a1a30",
+                        boxShadow: `
+                          inset 0 6px 20px rgba(0,0,0,0.95),
+                          inset 0 -2px 8px rgba(0,0,0,0.5),
+                          inset 2px 0 8px rgba(0,0,0,0.4),
+                          inset -2px 0 8px rgba(0,0,0,0.4),
+                          0 1px 0 rgba(255,255,255,0.04)
+                        `,
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-6 md:gap-10">
+                        <Reel3D spinning={playing} size={56} />
+                        <div className="flex-1 max-w-[90px] flex flex-col gap-1.5 py-1">
+                          {[0.5, 0.35, 0.5, 0.3, 0.45].map((o, i) => (
+                            <div key={i} className="h-px rounded" style={{ backgroundColor: `rgba(139, 90, 43, ${o})` }} />
+                          ))}
                         </div>
+                        <Reel3D spinning={playing} size={56} />
+                      </div>
 
-                        {/* Tape reels section */}
-                        <div
-                          className="flex items-center justify-between px-5 py-2.5 relative"
-                          style={{ background: "linear-gradient(180deg, #0e0e22, #0a0a1a)" }}
+                      {track && (
+                        <motion.div
+                          key={loaded}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 0.65, y: 0 }}
+                          transition={{ delay: 0.15, duration: 0.4 }}
+                          className="mt-3 mx-auto w-40 h-10 overflow-hidden"
+                          style={{
+                            border: `1px solid ${track.color}30`,
+                            boxShadow: `inset 0 1px 4px rgba(0,0,0,0.6), 0 0 8px ${track.color}10`,
+                          }}
                         >
-                          {[0, 1].map((r) => (
-                            <div key={r} className="relative">
-                              <div
-                                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isLoaded ? "animate-[spin_2s_linear_infinite]" : ""}`}
-                                style={{ borderColor: isLoaded ? t.color : "#3a3a5a" }}
-                              >
-                                <div
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: isLoaded ? t.color : "#3a3a5a" }}
-                                />
+                          <CassetteLabel track={track} />
+                        </motion.div>
+                      )}
+
+                      {!track && inserting === null && (
+                        <p className="font-pixel text-[6px] text-gray-600 text-center mt-4 tracking-wider animate-pulse">
+                          INSERT TAPE
+                        </p>
+                      )}
+
+                      {/* Insertion animation */}
+                      <AnimatePresence>
+                        {inserting !== null && (
+                          <motion.div
+                            initial={{ y: 160, rotateX: -35, scale: 0.95, opacity: 0.95 }}
+                            animate={{ y: 0, rotateX: 0, scale: 0.6, opacity: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
+                            style={{ perspective: 800 }}
+                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                          >
+                            <div
+                              className="w-32 h-20 overflow-hidden"
+                              style={{
+                                border: `2px solid ${TRACKS[inserting].color}70`,
+                                background: "linear-gradient(180deg, #1a1a3a, #10102a)",
+                                boxShadow: `0 0 24px ${TRACKS[inserting].color}30, ${DEPTH_SHADOW}`,
+                              }}
+                            >
+                              <div className="w-full h-12 overflow-hidden border-b border-[#2a2a4a]">
+                                <CassetteLabel track={TRACKS[inserting]} />
+                              </div>
+                              <div className="flex items-center justify-between px-6 py-1.5">
+                                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-500 flex items-center justify-center">
+                                  <div className="w-1 h-1 rounded-full bg-gray-600" />
+                                </div>
+                                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-500 flex items-center justify-center">
+                                  <div className="w-1 h-1 rounded-full bg-gray-600" />
+                                </div>
                               </div>
                             </div>
-                          ))}
-                          <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-700/50" />
-                        </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
 
-                        {/* Title */}
-                        <div className="px-2 py-1.5 border-t border-[#1a1a3a]">
-                          <p
-                            className="font-pixel text-[5px] md:text-[6px] truncate text-center transition-colors"
-                            style={{ color: isLoaded ? t.color : "#6b7280" }}
-                          >
-                            {t.title}
-                          </p>
-                        </div>
+                    {/* Now playing */}
+                    <div className="px-5 mb-2">
+                      <p className="font-pixel text-[7px] md:text-[8px] text-pixel-cyan text-center truncate h-4">
+                        {track ? track.title : "SELECT A CASSETTE"}
+                      </p>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="px-5 mb-3">
+                      <div
+                        onClick={seek}
+                        className="h-3 cursor-pointer group relative overflow-hidden"
+                        style={{
+                          background: "#08081a",
+                          border: "1px solid #1a1a30",
+                          boxShadow: "inset 0 2px 6px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.03)",
+                        }}
+                      >
+                        <motion.div
+                          className="h-full relative"
+                          style={{
+                            width: `${pct}%`,
+                            background: track
+                              ? `linear-gradient(90deg, ${track.color}80, ${track.color})`
+                              : "#00ffff",
+                            boxShadow: track ? `0 0 10px ${track.color}50` : undefined,
+                          }}
+                          transition={{ duration: 0.1 }}
+                        >
+                          <div className="absolute right-0 top-0 w-px h-full bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </motion.div>
                       </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </motion.div>
+                      <div className="flex justify-between mt-1">
+                        <span className="font-pixel-body text-[11px] text-gray-500">{fmt(progress)}</span>
+                        <span className="font-pixel-body text-[11px] text-gray-500">{fmt(duration)}</span>
+                      </div>
+                    </div>
+
+                    {/* 3D Transport controls */}
+                    <div className="flex items-center justify-center gap-3 px-5 pb-5">
+                      {([
+                        { label: "⏮", action: prev, size: "w-11 h-11 text-base" },
+                        { label: playing ? "⏸" : "▶", action: () => (playing ? pause() : play()), size: "w-14 h-14 text-xl" },
+                        { label: "⏭", action: next, size: "w-11 h-11 text-base" },
+                      ] as const).map((btn, i) => (
+                        <motion.button
+                          key={i}
+                          onClick={btn.action}
+                          disabled={loaded === null}
+                          whileTap={{ y: 3 }}
+                          className={`${btn.size} border-2 flex items-center justify-center font-pixel-body transition-colors disabled:opacity-25 disabled:cursor-not-allowed ${
+                            i === 1 && playing
+                              ? "border-pixel-cyan text-pixel-cyan"
+                              : "border-[#3a3a5a] text-gray-400 hover:border-pixel-cyan hover:text-pixel-cyan"
+                          }`}
+                          style={{
+                            background: "linear-gradient(180deg, #222244 0%, #1a1a36 40%, #14142a 100%)",
+                            boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset, 0 2px 0 #12122a, 0 3px 0 #0e0e20, 0 4px 0 #0a0a18, 0 6px 14px rgba(0,0,0,0.5)",
+                          }}
+                        >
+                          {btn.label}
+                        </motion.button>
+                      ))}
+                    </div>
+
+                    {/* Bottom edge bevel */}
+                    <div
+                      className="absolute bottom-0 inset-x-0 h-px"
+                      style={{ background: "linear-gradient(90deg, transparent, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.3) 70%, transparent)" }}
+                    />
+                  </div>
+
+                  {/* ── 3D Tape collection ── */}
+                  <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">
+                    TAPE COLLECTION
+                  </p>
+                  <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                    {TRACKS.map((t, i) => {
+                      const isLoaded = loaded === i;
+                      const isInserting = inserting === i;
+
+                      return (
+                        <motion.button
+                          key={i}
+                          onClick={() => insertCassette(i)}
+                          whileHover={!isInserting ? { y: -8, rotateX: -5, rotateY: 4, scale: 1.03 } : undefined}
+                          whileTap={!isInserting ? { scale: 0.95, y: 0 } : undefined}
+                          animate={
+                            isInserting
+                              ? { y: -70, rotateX: 45, scale: 0.4, opacity: 0 }
+                              : { y: 0, rotateX: 6, rotateY: 0, scale: 1, opacity: 1 }
+                          }
+                          transition={
+                            isInserting
+                              ? { duration: 0.7, ease: [0.4, 0, 0.2, 1] }
+                              : { type: "spring", stiffness: 260, damping: 18 }
+                          }
+                          style={{ perspective: 600, transformStyle: "preserve-3d" }}
+                          className="w-full"
+                        >
+                          <div
+                            className="overflow-hidden transition-shadow duration-300 relative"
+                            style={{
+                              background: "linear-gradient(180deg, #1e1e40 0%, #18183a 30%, #10102a 100%)",
+                              border: `2px solid ${isLoaded ? t.color : "#2a2a4a"}`,
+                              borderBottom: `2px solid ${isLoaded ? t.color + "80" : "#1a1a30"}`,
+                              boxShadow: isLoaded ? DEPTH_SHADOW_ACTIVE(t.color) : DEPTH_SHADOW,
+                            }}
+                          >
+                            {/* Top highlight */}
+                            <div
+                              className="absolute top-0 inset-x-0 h-px z-10"
+                              style={{
+                                background: isLoaded
+                                  ? `linear-gradient(90deg, transparent, ${t.color}30, transparent)`
+                                  : "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
+                              }}
+                            />
+
+                            {/* Cover art label */}
+                            <div
+                              className="w-full h-16 md:h-20 border-b overflow-hidden relative"
+                              style={{
+                                borderColor: isLoaded ? `${t.color}30` : "#2a2a4a",
+                                boxShadow: "inset 0 2px 8px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(0,0,0,0.3)",
+                              }}
+                            >
+                              <CassetteLabel track={t} />
+                              {isLoaded && (
+                                <div
+                                  className="absolute inset-0 pointer-events-none"
+                                  style={{ boxShadow: `inset 0 0 24px ${t.color}20` }}
+                                />
+                              )}
+                            </div>
+
+                            {/* Tape reels */}
+                            <div
+                              className="flex items-center justify-between px-3 md:px-4 py-2 relative"
+                              style={{
+                                background: "linear-gradient(180deg, #0c0c20 0%, #08081a 100%)",
+                                boxShadow: "inset 0 2px 4px rgba(0,0,0,0.4)",
+                              }}
+                            >
+                              {[0, 1].map((r) => (
+                                <div
+                                  key={r}
+                                  className={`w-4 h-4 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center ${isLoaded ? "animate-[spin_2s_linear_infinite]" : ""}`}
+                                  style={{
+                                    borderColor: isLoaded ? t.color : "#3a3a5a",
+                                    boxShadow: isLoaded
+                                      ? `inset 0 1px 2px rgba(0,0,0,0.5), 0 0 6px ${t.color}30`
+                                      : "inset 0 1px 2px rgba(0,0,0,0.5)",
+                                  }}
+                                >
+                                  <div
+                                    className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full"
+                                    style={{ backgroundColor: isLoaded ? t.color : "#3a3a5a" }}
+                                  />
+                                </div>
+                              ))}
+                              <div className="absolute inset-x-7 md:inset-x-8 top-1/2 -translate-y-1/2 border-t border-dashed border-gray-700/40" />
+                            </div>
+
+                            {/* Title */}
+                            <div className="px-1.5 py-1 border-t border-[#1a1a30]">
+                              <p
+                                className="font-pixel text-[4.5px] md:text-[5.5px] truncate text-center transition-colors"
+                                style={{ color: isLoaded ? t.color : "#6b7280" }}
+                              >
+                                {t.title}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>,
-      document.body,
-    )}
     </>
   );
 }

@@ -90,3 +90,113 @@ export function playDelete() {
   setTimeout(() => playTone(250, 0.15, "square"), 80);
   setTimeout(() => playTone(150, 0.2, "sawtooth"), 180);
 }
+
+export function playCassettePickup() {
+  const c = getCtx();
+  if (!c) return;
+  const t = c.currentTime;
+  // plastic click
+  const o1 = c.createOscillator();
+  const g1 = c.createGain();
+  o1.type = "square";
+  o1.frequency.setValueAtTime(2200, t);
+  o1.frequency.exponentialRampToValueAtTime(1400, t + 0.02);
+  g1.gain.setValueAtTime(0.08, t);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  o1.connect(g1);
+  g1.connect(c.destination);
+  o1.start(t);
+  o1.stop(t + 0.04);
+  // rattle
+  const o2 = c.createOscillator();
+  const g2 = c.createGain();
+  o2.type = "sawtooth";
+  o2.frequency.setValueAtTime(3000, t + 0.03);
+  o2.frequency.exponentialRampToValueAtTime(1800, t + 0.06);
+  g2.gain.setValueAtTime(0.04, t + 0.03);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+  o2.connect(g2);
+  g2.connect(c.destination);
+  o2.start(t + 0.03);
+  o2.stop(t + 0.07);
+}
+
+export function playCassetteInsert() {
+  const c = getCtx();
+  if (!c) return;
+  const t = c.currentTime;
+  // slide in
+  const o1 = c.createOscillator();
+  const g1 = c.createGain();
+  o1.type = "sawtooth";
+  o1.frequency.setValueAtTime(350, t);
+  o1.frequency.exponentialRampToValueAtTime(120, t + 0.18);
+  g1.gain.setValueAtTime(0.06, t);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+  o1.connect(g1);
+  g1.connect(c.destination);
+  o1.start(t);
+  o1.stop(t + 0.2);
+  // mechanical click/lock
+  const o2 = c.createOscillator();
+  const g2 = c.createGain();
+  o2.type = "square";
+  o2.frequency.setValueAtTime(600, t + 0.2);
+  g2.gain.setValueAtTime(0.1, t + 0.2);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+  o2.connect(g2);
+  g2.connect(c.destination);
+  o2.start(t + 0.2);
+  o2.stop(t + 0.25);
+  // thud
+  const o3 = c.createOscillator();
+  const g3 = c.createGain();
+  o3.type = "sine";
+  o3.frequency.setValueAtTime(100, t + 0.2);
+  g3.gain.setValueAtTime(0.12, t + 0.2);
+  g3.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+  o3.connect(g3);
+  g3.connect(c.destination);
+  o3.start(t + 0.2);
+  o3.stop(t + 0.3);
+}
+
+export function playCassetteStart() {
+  const c = getCtx();
+  if (!c) return;
+  const t = c.currentTime;
+  // play button chunk
+  const o1 = c.createOscillator();
+  const g1 = c.createGain();
+  o1.type = "square";
+  o1.frequency.setValueAtTime(180, t);
+  g1.gain.setValueAtTime(0.1, t);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  o1.connect(g1);
+  g1.connect(c.destination);
+  o1.start(t);
+  o1.stop(t + 0.08);
+  // head engage click
+  const o2 = c.createOscillator();
+  const g2 = c.createGain();
+  o2.type = "square";
+  o2.frequency.setValueAtTime(500, t + 0.1);
+  g2.gain.setValueAtTime(0.06, t + 0.1);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  o2.connect(g2);
+  g2.connect(c.destination);
+  o2.start(t + 0.1);
+  o2.stop(t + 0.14);
+  // motor spin-up whir
+  const o3 = c.createOscillator();
+  const g3 = c.createGain();
+  o3.type = "triangle";
+  o3.frequency.setValueAtTime(60, t + 0.12);
+  o3.frequency.exponentialRampToValueAtTime(220, t + 0.5);
+  g3.gain.setValueAtTime(0.07, t + 0.12);
+  g3.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+  o3.connect(g3);
+  g3.connect(c.destination);
+  o3.start(t + 0.12);
+  o3.stop(t + 0.55);
+}
