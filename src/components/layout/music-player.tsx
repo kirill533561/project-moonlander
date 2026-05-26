@@ -8,6 +8,7 @@ const TRACKS = [
   { src: "/music/Crossing_the_Far_Perimeter.mp3", title: "CROSSING THE FAR PERIMETER", cover: null as string | null, color: "#b967ff" },
   { src: "/music/Approaching_the_Far_Side.mp3", title: "APPROACHING THE FAR SIDE", cover: "/music/Approaching_the_Far_Side.jpg", color: "#ffd700" },
   { src: "/music/Through_The_Asteroid_Belt.mp3", title: "THROUGH THE ASTEROID BELT", cover: "/music/Through_The_Asteroid_Belt.jpg", color: "#ff4444" },
+  { src: "/music/Above_The_Silver_Glass.mp3", title: "ABOVE THE SILVER GLASS", cover: "/music/Above_The_Silver_Glass.jpg", color: "#7dd3fc" },
 ];
 
 function fmt(s: number) {
