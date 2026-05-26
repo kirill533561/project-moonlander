@@ -3,6 +3,7 @@
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Header, DemoProvider } from "@/components/layout/header";
+import { MusicPlayer } from "@/components/layout/music-player";
 import { ShootingStar } from "@/components/layout/shooting-star";
 import { MoonEasterEgg } from "@/components/layout/moon-easter-egg";
 
@@ -23,6 +24,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarNav />
         <div className="md:ml-56 flex flex-col min-h-screen relative z-10">
           <Header />
+          <MusicPlayer />
           <main className="flex-1 p-5 pb-24 md:pb-6">{children}</main>
         </div>
         <BottomNav />
