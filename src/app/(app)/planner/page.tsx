@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useCloudStorage } from "@/lib/use-cloud-storage";
 import { useDemoMode } from "@/components/layout/header";
+import { createClient } from "@/lib/supabase/client";
 import {
   DndContext,
   DragOverlay,
@@ -71,6 +72,7 @@ interface Task {
   dueDate: string | null;
   labels: string[];
   checklist: ChecklistItem[];
+  images: string[];
   notes: string;
   order: number;
   createdAt: string;
@@ -174,6 +176,25 @@ function TaskCard({
       onClick={onClick}
       className="w-full text-left pixel-card p-3 hover:border-pixel-cyan transition-colors group"
     >
+      {/* Image preview */}
+      {task.images?.length > 0 && (
+        <div className="flex gap-1 mb-2 overflow-hidden rounded-sm">
+          {task.images.slice(0, 3).map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt=""
+              className="w-12 h-12 object-cover border border-[#2a2a4a]"
+            />
+          ))}
+          {task.images.length > 3 && (
+            <div className="w-12 h-12 bg-[#1a1a3a] border border-[#2a2a4a] flex items-center justify-center font-pixel text-[6px] text-gray-500">
+              +{task.images.length - 3}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Labels */}
       {taskLabels.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
@@ -269,8 +290,11 @@ function TaskModal({
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const [t, setT] = useState<Task>({ ...task });
+  const [t, setT] = useState<Task>({ ...task, images: task.images || [] });
   const [newCheckItem, setNewCheckItem] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const save = (patch: Partial<Task>) => {
     const updated = { ...t, ...patch };
@@ -516,6 +540,105 @@ function TaskModal({
             </button>
           </form>
         </div>
+
+        {/* Images */}
+        <div className="mb-4">
+          <p className="font-pixel text-[6px] text-gray-500 mb-1">
+            IMAGES {t.images.length > 0 && `(${t.images.length})`}
+          </p>
+
+          {t.images.length > 0 && (
+            <div className="grid grid-cols-4 gap-2 mb-2">
+              {t.images.map((src, i) => (
+                <div key={i} className="relative group">
+                  <button
+                    onClick={() => setPreviewImg(src)}
+                    className="w-full"
+                  >
+                    <img
+                      src={src}
+                      alt=""
+                      className="w-full h-20 object-cover border-2 border-[#2a2a4a] hover:border-pixel-cyan transition-colors"
+                    />
+                  </button>
+                  <button
+                    onClick={() =>
+                      save({ images: t.images.filter((_, j) => j !== i) })
+                    }
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/70 text-pixel-red font-pixel-body text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={async (e) => {
+              const files = e.target.files;
+              if (!files?.length) return;
+              setUploading(true);
+              try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const newUrls: string[] = [];
+                for (const file of Array.from(files)) {
+                  const ext = file.name.split(".").pop() || "jpg";
+                  const path = `${user.id}/planner/${t.id}/${uid()}.${ext}`;
+                  const { error } = await supabase.storage
+                    .from("task-images")
+                    .upload(path, file, { upsert: true });
+                  if (error) {
+                    console.error("Upload failed:", error.message);
+                    continue;
+                  }
+                  const { data: urlData } = supabase.storage
+                    .from("task-images")
+                    .getPublicUrl(path);
+                  newUrls.push(urlData.publicUrl);
+                }
+                if (newUrls.length) {
+                  save({ images: [...t.images, ...newUrls] });
+                }
+              } catch (err) {
+                console.error("Upload error:", err);
+              } finally {
+                setUploading(false);
+                if (fileRef.current) fileRef.current.value = "";
+              }
+            }}
+          />
+
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="font-pixel text-[7px] text-gray-500 hover:text-pixel-cyan border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan px-3 py-2 w-full transition-colors disabled:opacity-50"
+          >
+            {uploading ? "UPLOADING..." : "+ ADD IMAGES"}
+          </button>
+        </div>
+
+        {/* Image preview modal */}
+        {previewImg && (
+          <div
+            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+            onClick={() => setPreviewImg(null)}
+          >
+            <img
+              src={previewImg}
+              alt=""
+              className="max-w-full max-h-full object-contain border-2 border-[#2a2a4a]"
+            />
+          </div>
+        )}
 
         {/* Notes */}
         <div>
@@ -854,6 +977,7 @@ export default function PlannerPage() {
       dueDate: null,
       labels: [],
       checklist: [],
+      images: [],
       notes: "",
       order,
       createdAt: new Date().toISOString(),
