@@ -119,7 +119,7 @@ const CHART_COLORS = ["#00ffff", "#ff4444", "#ffd700", "#00ff41", "#b967ff", "#f
 
 function isOverdue(d: string | null) {
   if (!d) return false;
-  return new Date(d) < new Date(new Date().toDateString());
+  return new Date(d) < new Date();
 }
 
 // ── Sortable Task Card ──
@@ -231,7 +231,9 @@ function TaskCard({
             }`}
           >
             {overdue && "⚠ "}
-            {task.dueDate}
+            {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {" "}
+            {new Date(task.dueDate).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
           </span>
         )}
 
@@ -361,22 +363,31 @@ function TaskModal({
           </div>
         </div>
 
-        {/* Due date */}
+        {/* Due date & time */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">DUE DATE</p>
-          <input
-            type="date"
-            className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1.5 outline-none focus:border-pixel-cyan"
-            value={t.dueDate || ""}
-            onChange={(e) => save({ dueDate: e.target.value || null })}
-          />
+          <p className="font-pixel text-[6px] text-gray-500 mb-1">DUE DATE & TIME</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="datetime-local"
+              className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1.5 outline-none focus:border-pixel-cyan"
+              value={t.dueDate ? t.dueDate.slice(0, 16) : ""}
+              onChange={(e) =>
+                save({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : null })
+              }
+            />
+            {t.dueDate && (
+              <button
+                onClick={() => save({ dueDate: null })}
+                className="font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
+              >
+                CLEAR
+              </button>
+            )}
+          </div>
           {t.dueDate && (
-            <button
-              onClick={() => save({ dueDate: null })}
-              className="ml-2 font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
-            >
-              CLEAR
-            </button>
+            <p className="font-pixel text-[5px] text-gray-600 mt-1">
+              Email reminder sent when due within 1 hour
+            </p>
           )}
         </div>
 
