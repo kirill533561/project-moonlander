@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { useCloudStorage } from "@/lib/use-cloud-storage";
 import { useDemoMode } from "@/components/layout/header";
 import { createClient } from "@/lib/supabase/client";
+import { DateTimePicker } from "@/components/planner/date-time-picker";
 import {
   DndContext,
   DragOverlay,
@@ -294,6 +295,7 @@ function TaskModal({
   const [newCheckItem, setNewCheckItem] = useState("");
   const [uploading, setUploading] = useState(false);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = (patch: Partial<Task>) => {
@@ -405,27 +407,45 @@ function TaskModal({
         {/* Due date & time */}
         <div className="mb-4">
           <p className="font-pixel text-[6px] text-gray-500 mb-1">DUE DATE & TIME</p>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              type="datetime-local"
-              className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1.5 outline-none focus:border-pixel-cyan"
-              value={t.dueDate ? t.dueDate.slice(0, 16) : ""}
-              onChange={(e) =>
-                save({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : null })
-              }
-            />
-            {t.dueDate && (
+          {showDatePicker ? (
+            <div>
+              <DateTimePicker
+                value={t.dueDate}
+                onChange={(iso) => {
+                  save({ dueDate: iso });
+                  if (iso) setShowDatePicker(false);
+                }}
+              />
               <button
-                onClick={() => save({ dueDate: null })}
-                className="font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
+                onClick={() => setShowDatePicker(false)}
+                className="font-pixel text-[6px] text-gray-500 hover:text-white mt-2"
               >
-                CLEAR
+                CLOSE
               </button>
-            )}
-          </div>
-          {t.dueDate && (
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setShowDatePicker(true)}
+                className="font-pixel-body text-sm px-3 py-1.5 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white hover:border-pixel-cyan transition-colors"
+              >
+                {t.dueDate
+                  ? `${new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${new Date(t.dueDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                  : "Set date & time..."}
+              </button>
+              {t.dueDate && (
+                <button
+                  onClick={() => save({ dueDate: null })}
+                  className="font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
+                >
+                  CLEAR
+                </button>
+              )}
+            </div>
+          )}
+          {t.dueDate && !showDatePicker && (
             <p className="font-pixel text-[5px] text-gray-600 mt-1">
-              Email reminder sent when due within 1 hour
+              Email reminder 15 min before deadline
             </p>
           )}
         </div>
