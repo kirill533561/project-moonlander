@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   value: string | null;
@@ -10,14 +11,218 @@ interface Props {
 const DAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
+function daysInMonth(y: number, m: number) { return new Date(y, m + 1, 0).getDate(); }
+function startDay(y: number, m: number) { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1; }
+
+function getAngle(cx: number, cy: number, x: number, y: number) {
+  let deg = (Math.atan2(y - cy, x - cx) * 180) / Math.PI + 90;
+  if (deg < 0) deg += 360;
+  return deg;
 }
 
-function startDay(year: number, month: number) {
-  const d = new Date(year, month, 1).getDay();
-  return d === 0 ? 6 : d - 1;
+function getDist(cx: number, cy: number, x: number, y: number) {
+  return Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
 }
+
+// ── Clock face with drag ──
+
+function ClockDial({
+  mode,
+  hour,
+  minute,
+  onHourChange,
+  onMinuteChange,
+  onDone,
+}: {
+  mode: "hour" | "minute";
+  hour: number;
+  minute: number;
+  onHourChange: (h: number) => void;
+  onMinuteChange: (m: number) => void;
+  onDone: () => void;
+}) {
+  const clockRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const SIZE = 240;
+  const C = SIZE / 2;
+  const OUTER_R = 95;
+  const INNER_R = 62;
+
+  const getPointerPos = (e: React.PointerEvent | PointerEvent) => {
+    const rect = clockRef.current!.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const resolveHour = useCallback((x: number, y: number) => {
+    const angle = getAngle(C, C, x, y);
+    const dist = getDist(C, C, x, y);
+    const segment = Math.round(angle / 30) % 12;
+    const isInner = dist < (OUTER_R + INNER_R) / 2;
+    if (isInner) {
+      return segment === 0 ? 0 : segment + 12;
+    }
+    return segment === 0 ? 12 : segment;
+  }, []);
+
+  const resolveMinute = useCallback((x: number, y: number) => {
+    const angle = getAngle(C, C, x, y);
+    return Math.round(angle / 6) % 60;
+  }, []);
+
+  const handlePointer = useCallback((x: number, y: number) => {
+    if (mode === "hour") {
+      onHourChange(resolveHour(x, y));
+    } else {
+      onMinuteChange(resolveMinute(x, y));
+    }
+  }, [mode, resolveHour, resolveMinute, onHourChange, onMinuteChange]);
+
+  const onDown = (e: React.PointerEvent) => {
+    dragging.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const { x, y } = getPointerPos(e);
+    handlePointer(x, y);
+  };
+
+  const onMove = (e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    const { x, y } = getPointerPos(e);
+    handlePointer(x, y);
+  };
+
+  const onUp = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    onDone();
+  };
+
+  const handAngle = mode === "hour"
+    ? ((hour % 12) / 12) * 360
+    : (minute / 60) * 360;
+
+  const isInner = mode === "hour" && (hour === 0 || hour > 12);
+  const handLen = mode === "hour" ? (isInner ? INNER_R - 14 : OUTER_R - 14) : OUTER_R - 14;
+
+  const handRad = ((handAngle - 90) * Math.PI) / 180;
+  const hx = C + Math.cos(handRad) * handLen;
+  const hy = C + Math.sin(handRad) * handLen;
+
+  return (
+    <div
+      ref={clockRef}
+      className="relative select-none touch-none cursor-pointer"
+      style={{ width: SIZE, height: SIZE }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+    >
+      {/* Background circle */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          inset: 4,
+          background: "#0a0a18",
+          border: "2px solid #2a2a4a",
+        }}
+      />
+
+      {/* Hand + dot */}
+      <svg className="absolute inset-0 pointer-events-none" width={SIZE} height={SIZE}>
+        <motion.line
+          x1={C} y1={C}
+          animate={{ x2: hx, y2: hy }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          stroke="#00ffff"
+          strokeWidth="2"
+        />
+        <motion.circle
+          animate={{ cx: hx, cy: hy }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          r="16"
+          fill="#00ffff"
+          fillOpacity="0.15"
+          stroke="#00ffff"
+          strokeWidth="1.5"
+        />
+        <circle cx={C} cy={C} r="4" fill="#00ffff" />
+      </svg>
+
+      {mode === "hour" && (
+        <>
+          {/* Outer ring: 1–12 */}
+          {Array.from({ length: 12 }).map((_, i) => {
+            const h = i === 0 ? 12 : i;
+            const angle = (i / 12) * 360 - 90;
+            const rad = (angle * Math.PI) / 180;
+            const x = C + Math.cos(rad) * (OUTER_R - 14) - 10;
+            const y = C + Math.sin(rad) * (OUTER_R - 14) - 10;
+            const active = hour === h;
+            return (
+              <div
+                key={h}
+                className={`absolute w-5 h-5 flex items-center justify-center font-pixel-body text-xs pointer-events-none transition-colors ${
+                  active ? "text-space-dark font-bold" : "text-gray-300"
+                }`}
+                style={{ left: x, top: y }}
+              >
+                {h}
+              </div>
+            );
+          })}
+          {/* Inner ring: 13–24 (0) */}
+          {Array.from({ length: 12 }).map((_, i) => {
+            const h = i === 0 ? 0 : i + 12;
+            const label = h.toString().padStart(2, "0");
+            const angle = (i / 12) * 360 - 90;
+            const rad = (angle * Math.PI) / 180;
+            const x = C + Math.cos(rad) * (INNER_R - 10) - 10;
+            const y = C + Math.sin(rad) * (INNER_R - 10) - 10;
+            const active = hour === h;
+            return (
+              <div
+                key={`i${h}`}
+                className={`absolute w-5 h-5 flex items-center justify-center font-pixel-body text-[11px] pointer-events-none transition-colors ${
+                  active ? "text-space-dark font-bold" : "text-gray-500"
+                }`}
+                style={{ left: x, top: y }}
+              >
+                {label}
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {mode === "minute" && (
+        <>
+          {Array.from({ length: 12 }).map((_, i) => {
+            const m = i * 5;
+            const angle = (m / 60) * 360 - 90;
+            const rad = (angle * Math.PI) / 180;
+            const x = C + Math.cos(rad) * (OUTER_R - 14) - 10;
+            const y = C + Math.sin(rad) * (OUTER_R - 14) - 10;
+            const active = minute === m;
+            return (
+              <div
+                key={m}
+                className={`absolute w-5 h-5 flex items-center justify-center font-pixel-body text-xs pointer-events-none transition-colors ${
+                  active ? "text-space-dark font-bold" : "text-gray-300"
+                }`}
+                style={{ left: x, top: y }}
+              >
+                {m.toString().padStart(2, "0")}
+              </div>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ──
 
 export function DateTimePicker({ value, onChange }: Props) {
   const parsed = value ? new Date(value) : null;
@@ -27,9 +232,8 @@ export function DateTimePicker({ value, onChange }: Props) {
   const [viewMonth, setViewMonth] = useState(parsed?.getMonth() ?? now.getMonth());
   const [selectedDate, setSelectedDate] = useState<Date | null>(parsed);
   const [step, setStep] = useState<"date" | "hour" | "minute">("date");
-  const [hour, setHour] = useState(parsed ? parsed.getHours() % 12 || 12 : 12);
+  const [hour, setHour] = useState(parsed ? parsed.getHours() : 12);
   const [minute, setMinute] = useState(parsed ? parsed.getMinutes() : 0);
-  const [amPm, setAmPm] = useState<"AM" | "PM">(parsed && parsed.getHours() >= 12 ? "PM" : "AM");
 
   const days = useMemo(() => daysInMonth(viewYear, viewMonth), [viewYear, viewMonth]);
   const offset = useMemo(() => startDay(viewYear, viewMonth), [viewYear, viewMonth]);
@@ -43,33 +247,18 @@ export function DateTimePicker({ value, onChange }: Props) {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
     else setViewMonth(viewMonth - 1);
   };
-
   const nextMonth = () => {
     if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
     else setViewMonth(viewMonth + 1);
   };
 
   const pickDay = (day: number) => {
-    const d = new Date(viewYear, viewMonth, day);
-    setSelectedDate(d);
+    setSelectedDate(new Date(viewYear, viewMonth, day));
     setStep("hour");
   };
 
-  const pickHour = (h: number) => {
-    setHour(h);
-    setStep("minute");
-  };
-
-  const pickMinute = (m: number) => {
-    setMinute(m);
-    finalize(selectedDate!, hour, m, amPm);
-  };
-
-  const finalize = (date: Date, h: number, m: number, ap: "AM" | "PM") => {
-    let h24 = h % 12;
-    if (ap === "PM") h24 += 12;
-    const result = new Date(date.getFullYear(), date.getMonth(), date.getDate(), h24, m);
-    onChange(result.toISOString());
+  const finalize = (date: Date, h: number, m: number) => {
+    onChange(new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m).toISOString());
   };
 
   const clear = () => {
@@ -78,214 +267,146 @@ export function DateTimePicker({ value, onChange }: Props) {
     setStep("date");
   };
 
-  const clockRadius = 90;
-  const clockCenter = 105;
+  const fmtTime = (h: number, m: number) => {
+    const ap = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    return `${h12}:${m.toString().padStart(2, "0")} ${ap}`;
+  };
 
   return (
-    <div className="pixel-card p-4 w-full max-w-[260px]">
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-3">
-        {(["date", "hour", "minute"] as const).map((s, i) => (
+    <div className="pixel-card p-4 w-full max-w-[280px]">
+      {/* Header with clickable time display */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1">
           <button
-            key={s}
-            onClick={() => { if (s === "date" || selectedDate) setStep(s); }}
-            className={`font-pixel text-[6px] px-2 py-1 transition-colors ${
-              step === s
-                ? "text-pixel-cyan border-b-2 border-pixel-cyan"
-                : "text-gray-600 hover:text-gray-400"
+            onClick={() => { if (selectedDate) setStep("date"); }}
+            className={`font-pixel text-[7px] px-2 py-1 transition-colors ${
+              step === "date" ? "text-pixel-cyan" : "text-gray-500 hover:text-gray-300"
             }`}
           >
-            {s === "date" ? "DATE" : s === "hour" ? "HOUR" : "MIN"}
+            {selectedDate
+              ? selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+              : "DATE"}
           </button>
-        ))}
-        <div className="flex-1" />
+          {selectedDate && (
+            <>
+              <span className="text-gray-600 font-pixel-body text-xs">·</span>
+              <button
+                onClick={() => setStep("hour")}
+                className={`font-pixel-body text-sm px-1 transition-colors ${
+                  step === "hour" ? "text-pixel-cyan" : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {hour.toString().padStart(2, "0")}
+              </button>
+              <span className={`font-pixel-body text-sm ${step === "hour" || step === "minute" ? "text-pixel-cyan" : "text-gray-600"}`}>:</span>
+              <button
+                onClick={() => setStep("minute")}
+                className={`font-pixel-body text-sm px-1 transition-colors ${
+                  step === "minute" ? "text-pixel-cyan" : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {minute.toString().padStart(2, "0")}
+              </button>
+            </>
+          )}
+        </div>
         {value && (
-          <button onClick={clear} className="font-pixel text-[6px] text-pixel-red hover:text-red-300">
-            CLEAR
-          </button>
+          <button onClick={clear} className="font-pixel text-[6px] text-pixel-red hover:text-red-300">CLEAR</button>
         )}
       </div>
 
-      {/* Current value preview */}
-      {selectedDate && (
-        <p className="font-pixel-body text-sm text-pixel-cyan text-center mb-3">
-          {selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-          {step !== "date" && ` · ${hour}:${minute.toString().padStart(2, "0")} ${amPm}`}
-        </p>
-      )}
+      <AnimatePresence mode="wait">
+        {/* ── Date ── */}
+        {step === "date" && (
+          <motion.div
+            key="date"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <button onClick={prevMonth} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2">◀</button>
+              <p className="font-pixel text-[7px] text-gray-400">{MONTHS[viewMonth]} {viewYear}</p>
+              <button onClick={nextMonth} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2">▶</button>
+            </div>
+            <div className="grid grid-cols-7 gap-0.5">
+              {DAYS.map((d) => (
+                <div key={d} className="font-pixel text-[5px] text-gray-600 text-center py-1">{d}</div>
+              ))}
+              {Array.from({ length: offset }).map((_, i) => <div key={`e${i}`} />)}
+              {Array.from({ length: days }).map((_, i) => {
+                const day = i + 1;
+                const cellStr = `${viewYear}-${viewMonth}-${day}`;
+                const isToday = cellStr === todayStr;
+                const isSelected = cellStr === selectedStr;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => pickDay(day)}
+                    className={`font-pixel-body text-sm py-1.5 text-center transition-all ${
+                      isSelected
+                        ? "bg-pixel-cyan text-space-dark"
+                        : isToday
+                          ? "text-pixel-cyan border border-pixel-cyan/40"
+                          : "text-gray-400 hover:bg-[#1a1a3a] hover:text-white"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
-      {/* ── Date picker ── */}
-      {step === "date" && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <button onClick={prevMonth} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2">◀</button>
-            <p className="font-pixel text-[7px] text-gray-400">
-              {MONTHS[viewMonth]} {viewYear}
-            </p>
-            <button onClick={nextMonth} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2">▶</button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-0.5">
-            {DAYS.map((d) => (
-              <div key={d} className="font-pixel text-[5px] text-gray-600 text-center py-1">{d}</div>
-            ))}
-            {Array.from({ length: offset }).map((_, i) => (
-              <div key={`e${i}`} />
-            ))}
-            {Array.from({ length: days }).map((_, i) => {
-              const day = i + 1;
-              const cellStr = `${viewYear}-${viewMonth}-${day}`;
-              const isToday = cellStr === todayStr;
-              const isSelected = cellStr === selectedStr;
-              return (
-                <button
-                  key={day}
-                  onClick={() => pickDay(day)}
-                  className={`font-pixel-body text-sm py-1.5 text-center transition-colors ${
-                    isSelected
-                      ? "bg-pixel-cyan text-space-dark"
-                      : isToday
-                        ? "text-pixel-cyan border border-pixel-cyan/40"
-                        : "text-gray-400 hover:bg-[#1a1a3a] hover:text-white"
-                  }`}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Hour picker (clock face) ── */}
-      {step === "hour" && (
-        <div className="flex flex-col items-center">
-          <div className="relative" style={{ width: clockCenter * 2, height: clockCenter * 2 }}>
-            {/* Clock circle */}
-            <div
-              className="absolute inset-2 rounded-full"
-              style={{ border: "2px solid #2a2a4a", background: "#0a0a18" }}
+        {/* ── Hour ── */}
+        {step === "hour" && (
+          <motion.div
+            key="hour"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col items-center"
+          >
+            <p className="font-pixel text-[6px] text-gray-600 mb-2">SELECT HOUR</p>
+            <ClockDial
+              mode="hour"
+              hour={hour}
+              minute={minute}
+              onHourChange={setHour}
+              onMinuteChange={setMinute}
+              onDone={() => setStep("minute")}
             />
-            {/* Center dot */}
-            <div
-              className="absolute rounded-full bg-pixel-cyan"
-              style={{
-                width: 6, height: 6,
-                top: clockCenter - 3, left: clockCenter - 3,
+          </motion.div>
+        )}
+
+        {/* ── Minute ── */}
+        {step === "minute" && (
+          <motion.div
+            key="minute"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col items-center"
+          >
+            <p className="font-pixel text-[6px] text-gray-600 mb-2">SELECT MINUTE</p>
+            <ClockDial
+              mode="minute"
+              hour={hour}
+              minute={minute}
+              onHourChange={setHour}
+              onMinuteChange={setMinute}
+              onDone={() => {
+                if (selectedDate) finalize(selectedDate, hour, minute);
               }}
             />
-            {/* Hand */}
-            {(() => {
-              const angle = ((hour % 12) / 12) * 360 - 90;
-              const rad = (angle * Math.PI) / 180;
-              const x2 = clockCenter + Math.cos(rad) * (clockRadius - 18);
-              const y2 = clockCenter + Math.sin(rad) * (clockRadius - 18);
-              return (
-                <svg className="absolute inset-0" style={{ width: clockCenter * 2, height: clockCenter * 2 }}>
-                  <line x1={clockCenter} y1={clockCenter} x2={x2} y2={y2} stroke="#00ffff" strokeWidth="2" strokeOpacity="0.5" />
-                </svg>
-              );
-            })()}
-            {/* Hour numbers */}
-            {Array.from({ length: 12 }).map((_, i) => {
-              const h = i + 1;
-              const angle = (h / 12) * 360 - 90;
-              const rad = (angle * Math.PI) / 180;
-              const x = clockCenter + Math.cos(rad) * (clockRadius - 16) - 12;
-              const y = clockCenter + Math.sin(rad) * (clockRadius - 16) - 12;
-              const isActive = hour === h;
-              return (
-                <button
-                  key={h}
-                  onClick={() => pickHour(h)}
-                  className={`absolute w-6 h-6 flex items-center justify-center font-pixel-body text-sm transition-colors ${
-                    isActive
-                      ? "bg-pixel-cyan text-space-dark"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                  style={{ left: x, top: y, borderRadius: "50%" }}
-                >
-                  {h}
-                </button>
-              );
-            })}
-          </div>
-          {/* AM/PM toggle */}
-          <div className="flex gap-1 mt-3">
-            {(["AM", "PM"] as const).map((ap) => (
-              <button
-                key={ap}
-                onClick={() => setAmPm(ap)}
-                className={`font-pixel text-[7px] px-3 py-1.5 border-2 transition-colors ${
-                  amPm === ap
-                    ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a]"
-                    : "border-[#2a2a4a] text-gray-500 hover:text-white"
-                }`}
-              >
-                {ap}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Minute picker (clock face) ── */}
-      {step === "minute" && (
-        <div className="flex flex-col items-center">
-          <div className="relative" style={{ width: clockCenter * 2, height: clockCenter * 2 }}>
-            <div
-              className="absolute inset-2 rounded-full"
-              style={{ border: "2px solid #2a2a4a", background: "#0a0a18" }}
-            />
-            <div
-              className="absolute rounded-full bg-pixel-cyan"
-              style={{
-                width: 6, height: 6,
-                top: clockCenter - 3, left: clockCenter - 3,
-              }}
-            />
-            {/* Hand */}
-            {(() => {
-              const angle = (minute / 60) * 360 - 90;
-              const rad = (angle * Math.PI) / 180;
-              const x2 = clockCenter + Math.cos(rad) * (clockRadius - 14);
-              const y2 = clockCenter + Math.sin(rad) * (clockRadius - 14);
-              return (
-                <svg className="absolute inset-0" style={{ width: clockCenter * 2, height: clockCenter * 2 }}>
-                  <line x1={clockCenter} y1={clockCenter} x2={x2} y2={y2} stroke="#00ffff" strokeWidth="2" strokeOpacity="0.5" />
-                </svg>
-              );
-            })()}
-            {/* Minute numbers (every 5 min) */}
-            {Array.from({ length: 12 }).map((_, i) => {
-              const m = i * 5;
-              const angle = (m / 60) * 360 - 90;
-              const rad = (angle * Math.PI) / 180;
-              const x = clockCenter + Math.cos(rad) * (clockRadius - 14) - 12;
-              const y = clockCenter + Math.sin(rad) * (clockRadius - 14) - 12;
-              const isActive = minute === m;
-              return (
-                <button
-                  key={m}
-                  onClick={() => pickMinute(m)}
-                  className={`absolute w-6 h-6 flex items-center justify-center font-pixel-body text-xs transition-colors ${
-                    isActive
-                      ? "bg-pixel-cyan text-space-dark"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                  style={{ left: x, top: y, borderRadius: "50%" }}
-                >
-                  {m.toString().padStart(2, "0")}
-                </button>
-              );
-            })}
-          </div>
-          {/* Quick confirm with current selection */}
-          <p className="font-pixel text-[6px] text-gray-500 mt-2">
-            {hour}:{minute.toString().padStart(2, "0")} {amPm}
-          </p>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
