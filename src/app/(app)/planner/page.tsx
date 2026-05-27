@@ -407,46 +407,37 @@ function TaskModal({
         {/* Due date & time */}
         <div className="mb-4">
           <p className="font-pixel text-[6px] text-gray-500 mb-1">DUE DATE & TIME</p>
-          {showDatePicker ? (
-            <div>
-              <DateTimePicker
-                value={t.dueDate}
-                onChange={(iso) => {
-                  save({ dueDate: iso });
-                  if (iso) setShowDatePicker(false);
-                }}
-              />
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setShowDatePicker(true)}
+              className="font-pixel-body text-sm px-3 py-1.5 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white hover:border-pixel-cyan transition-colors"
+            >
+              {t.dueDate
+                ? `${new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${new Date(t.dueDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                : "Set date & time..."}
+            </button>
+            {t.dueDate && (
               <button
-                onClick={() => setShowDatePicker(false)}
-                className="font-pixel text-[6px] text-gray-500 hover:text-white mt-2"
+                onClick={() => save({ dueDate: null })}
+                className="font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
               >
-                CLOSE
+                CLEAR
               </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => setShowDatePicker(true)}
-                className="font-pixel-body text-sm px-3 py-1.5 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white hover:border-pixel-cyan transition-colors"
-              >
-                {t.dueDate
-                  ? `${new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${new Date(t.dueDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
-                  : "Set date & time..."}
-              </button>
-              {t.dueDate && (
-                <button
-                  onClick={() => save({ dueDate: null })}
-                  className="font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
-                >
-                  CLEAR
-                </button>
-              )}
-            </div>
-          )}
-          {t.dueDate && !showDatePicker && (
+            )}
+          </div>
+          {t.dueDate && (
             <p className="font-pixel text-[5px] text-gray-600 mt-1">
               Email reminder 15 min before deadline
             </p>
+          )}
+          {showDatePicker && (
+            <DateTimePicker
+              value={t.dueDate}
+              onChange={(iso) => {
+                save({ dueDate: iso });
+                setShowDatePicker(false);
+              }}
+            />
           )}
         </div>
 
