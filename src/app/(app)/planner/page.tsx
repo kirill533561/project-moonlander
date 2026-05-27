@@ -300,6 +300,21 @@ function TaskModal({
     const updated = { ...t, ...patch };
     setT(updated);
     onUpdate(updated);
+
+    if (patch.dueDate && patch.dueDate !== t.dueDate) {
+      const bucket = buckets.find((b) => b.id === updated.bucketId);
+      fetch("/api/planner/schedule-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskTitle: updated.title,
+          dueDate: patch.dueDate,
+          priority: updated.priority,
+          planName: "Mission Plan",
+          bucketName: bucket?.name || "Bucket",
+        }),
+      }).catch(() => {});
+    }
   };
 
   return (
