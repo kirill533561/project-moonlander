@@ -175,7 +175,7 @@ function TaskCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left pixel-card p-3 hover:border-pixel-cyan transition-colors group"
+      className="w-full text-left pixel-card p-4 hover:border-pixel-cyan transition-colors group"
     >
       {/* Image preview */}
       {task.images?.length > 0 && (
@@ -202,7 +202,7 @@ function TaskCard({
           {taskLabels.map((l) => (
             <span
               key={l.id}
-              className="font-pixel text-[5px] px-1.5 py-0.5"
+              className="font-pixel text-[6px] px-2 py-0.5"
               style={{ background: l.color + "25", color: l.color }}
             >
               {l.name}
@@ -213,7 +213,7 @@ function TaskCard({
 
       {/* Title */}
       <p
-        className={`font-pixel-body text-base leading-tight mb-1.5 ${
+        className={`font-pixel-body text-lg leading-tight mb-2 ${
           task.progress === "completed"
             ? "text-gray-500 line-through"
             : "text-white"
@@ -226,7 +226,7 @@ function TaskCard({
       <div className="flex items-center gap-2 flex-wrap">
         {/* Priority */}
         <span
-          className="font-pixel text-[5px] px-1 py-0.5"
+          className="font-pixel text-[6px] px-1.5 py-0.5"
           style={{
             color: PRIORITY_COLORS[task.priority],
             border: `1px solid ${PRIORITY_COLORS[task.priority]}40`,
@@ -237,7 +237,7 @@ function TaskCard({
 
         {/* Progress */}
         <span
-          className="font-pixel text-[5px]"
+          className="font-pixel text-[6px]"
           style={{ color: PROGRESS_COLORS[task.progress] }}
         >
           {task.progress === "in-progress" && "▶ "}
@@ -248,7 +248,7 @@ function TaskCard({
         {/* Due date */}
         {task.dueDate && (
           <span
-            className={`font-pixel text-[5px] ${
+            className={`font-pixel text-[6px] ${
               overdue ? "text-pixel-red" : "text-gray-500"
             }`}
           >
@@ -262,7 +262,7 @@ function TaskCard({
         {/* Checklist count */}
         {checkTotal > 0 && (
           <span
-            className={`font-pixel text-[5px] ${
+            className={`font-pixel text-[6px] ${
               checkDone === checkTotal ? "text-pixel-green" : "text-gray-500"
             }`}
           >
@@ -321,7 +321,6 @@ function TaskModal({
 
   return (
     <div
-      data-zoom-portal
       className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-3 md:p-6 md:items-center"
       onClick={onClose}
     >
@@ -1401,13 +1400,13 @@ export default function PlannerPage() {
               return (
                 <div
                   key={bucket.id}
-                  className="flex-shrink-0 w-[280px]"
+                  className="flex-shrink-0 w-[320px]"
                 >
                   <div className="flex items-center justify-between mb-2 px-1">
                     {editBucketId === bucket.id ? (
                       <input
                         autoFocus
-                        className="font-pixel text-[8px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
+                        className="font-pixel text-[9px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
                         value={editBucketName}
                         onChange={(e) => setEditBucketName(e.target.value)}
                         onBlur={() => renameBucket(bucket.id, editBucketName)}
@@ -1419,7 +1418,7 @@ export default function PlannerPage() {
                     ) : (
                       <button
                         onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
-                        className="font-pixel text-[8px] text-pixel-cyan hover:text-white transition-colors"
+                        className="font-pixel text-[9px] text-pixel-cyan hover:text-white transition-colors"
                       >
                         {bucket.name}
                       </button>
@@ -1451,7 +1450,7 @@ export default function PlannerPage() {
               );
             })}
 
-            <div className="flex-shrink-0 w-[280px]">
+            <div className="flex-shrink-0 w-[320px]">
               <button
                 onClick={addBucket}
                 className="w-full font-pixel text-[8px] text-gray-600 hover:text-pixel-cyan py-4 border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan transition-colors mt-7"

@@ -4,13 +4,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ===== ZOOM — applied to portaled modals via CSS var ===== */
+/* ===== ZOOM ===== */
 :root { --app-zoom: 1; }
-@media (min-width: 768px) {
-  [data-zoom-portal] {
-    zoom: var(--app-zoom);
-  }
-}
 
 /* ===== 8-BIT SPACE THEME ===== */
 

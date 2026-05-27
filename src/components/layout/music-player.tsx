@@ -227,7 +227,6 @@ export function MusicPlayer() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.25 }}
-                data-zoom-portal
                 className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 md:p-6 md:items-center"
               >
                 <div className="fixed inset-0 bg-black/88 backdrop-blur-md" onClick={() => setOpen(false)} />
