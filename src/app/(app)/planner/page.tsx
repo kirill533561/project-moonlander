@@ -868,6 +868,7 @@ export default function PlannerPage() {
   const [activePlanId, setActivePlanId] = useCloudStorage<string>("ml-planner-active", "default");
 
   const [view, setView] = useState<"board" | "charts">("board");
+  const [mobileBucket, setMobileBucket] = useState(0);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
   const [showNewPlan, setShowNewPlan] = useState(false);
@@ -1282,7 +1283,88 @@ export default function PlannerPage() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 min-h-[300px]">
+          {/* Mobile: bucket tabs + single bucket view */}
+          <div className="md:hidden mb-3">
+            <div className="flex gap-1 overflow-x-auto pb-2">
+              {planBuckets.map((b, i) => {
+                const count = filteredTasks.filter((t) => t.bucketId === b.id).length;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setMobileBucket(i)}
+                    className={`font-pixel text-[7px] px-3 py-2 border-2 shrink-0 transition-colors ${
+                      mobileBucket === i
+                        ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a]"
+                        : "border-[#2a2a4a] text-gray-500"
+                    }`}
+                  >
+                    {b.name} ({count})
+                  </button>
+                );
+              })}
+              <button
+                onClick={addBucket}
+                className="font-pixel text-[7px] px-3 py-2 border-2 border-dashed border-[#2a2a4a] text-gray-600 shrink-0"
+              >
+                +
+              </button>
+            </div>
+
+            {planBuckets[mobileBucket] && (() => {
+              const bucket = planBuckets[mobileBucket];
+              const bucketTasks = filteredTasks
+                .filter((t) => t.bucketId === bucket.id)
+                .sort((a, b) => a.order - b.order);
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    {editBucketId === bucket.id ? (
+                      <input
+                        autoFocus
+                        className="font-pixel text-[9px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
+                        value={editBucketName}
+                        onChange={(e) => setEditBucketName(e.target.value)}
+                        onBlur={() => renameBucket(bucket.id, editBucketName)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") renameBucket(bucket.id, editBucketName);
+                          if (e.key === "Escape") setEditBucketId(null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
+                        className="font-pixel text-[9px] text-pixel-cyan hover:text-white transition-colors"
+                      >
+                        {bucket.name}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { if (confirm(`Delete bucket "${bucket.name}"?`)) { deleteBucket(bucket.id); setMobileBucket(Math.max(0, mobileBucket - 1)); } }}
+                      className="font-pixel-body text-sm text-gray-600 hover:text-pixel-red"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <SortableContext items={bucketTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                    <div className="flex flex-col gap-2 min-h-[200px] p-3 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
+                      {bucketTasks.map((task) => (
+                        <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} />
+                      ))}
+                      <button
+                        onClick={() => addTask(bucket.id)}
+                        className="w-full font-pixel text-[8px] text-gray-600 hover:text-pixel-cyan py-3 border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan transition-colors"
+                      >
+                        + ADD TASK
+                      </button>
+                    </div>
+                  </SortableContext>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Desktop: horizontal columns */}
+          <div className="hidden md:flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 min-h-[300px]">
             {planBuckets.map((bucket) => {
               const bucketTasks = filteredTasks
                 .filter((t) => t.bucketId === bucket.id)
@@ -1291,67 +1373,43 @@ export default function PlannerPage() {
               return (
                 <div
                   key={bucket.id}
-                  className="flex-shrink-0 w-[260px] md:w-[280px]"
+                  className="flex-shrink-0 w-[280px]"
                 >
-                  {/* Bucket header */}
                   <div className="flex items-center justify-between mb-2 px-1">
                     {editBucketId === bucket.id ? (
                       <input
                         autoFocus
                         className="font-pixel text-[8px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
                         value={editBucketName}
-                        onChange={(e) =>
-                          setEditBucketName(e.target.value)
-                        }
-                        onBlur={() =>
-                          renameBucket(bucket.id, editBucketName)
-                        }
+                        onChange={(e) => setEditBucketName(e.target.value)}
+                        onBlur={() => renameBucket(bucket.id, editBucketName)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter")
-                            renameBucket(bucket.id, editBucketName);
+                          if (e.key === "Enter") renameBucket(bucket.id, editBucketName);
                           if (e.key === "Escape") setEditBucketId(null);
                         }}
                       />
                     ) : (
                       <button
-                        onClick={() => {
-                          setEditBucketId(bucket.id);
-                          setEditBucketName(bucket.name);
-                        }}
+                        onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
                         className="font-pixel text-[8px] text-pixel-cyan hover:text-white transition-colors"
                       >
                         {bucket.name}
                       </button>
                     )}
                     <div className="flex items-center gap-1">
-                      <span className="font-pixel text-[7px] text-gray-600">
-                        {bucketTasks.length}
-                      </span>
+                      <span className="font-pixel text-[7px] text-gray-600">{bucketTasks.length}</span>
                       <button
-                        onClick={() => {
-                          if (confirm(`Delete bucket "${bucket.name}"?`))
-                            deleteBucket(bucket.id);
-                        }}
+                        onClick={() => { if (confirm(`Delete bucket "${bucket.name}"?`)) deleteBucket(bucket.id); }}
                         className="font-pixel-body text-xs text-gray-600 hover:text-pixel-red transition-colors"
                       >
                         ×
                       </button>
                     </div>
                   </div>
-
-                  {/* Tasks */}
-                  <SortableContext
-                    items={bucketTasks.map((t) => t.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
+                  <SortableContext items={bucketTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="flex flex-col gap-2 min-h-[100px] p-2 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
                       {bucketTasks.map((task) => (
-                        <SortableTaskCard
-                          key={task.id}
-                          task={task}
-                          labels={labels}
-                          onClick={() => setEditTask(task)}
-                        />
+                        <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} />
                       ))}
                       <button
                         onClick={() => addTask(bucket.id)}
@@ -1365,8 +1423,7 @@ export default function PlannerPage() {
               );
             })}
 
-            {/* Add bucket */}
-            <div className="flex-shrink-0 w-[260px] md:w-[280px]">
+            <div className="flex-shrink-0 w-[280px]">
               <button
                 onClick={addBucket}
                 className="w-full font-pixel text-[8px] text-gray-600 hover:text-pixel-cyan py-4 border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan transition-colors mt-7"

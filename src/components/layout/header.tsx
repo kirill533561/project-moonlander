@@ -14,11 +14,39 @@ export function useDemoMode() {
   return useContext(DemoContext);
 }
 
+const ZOOM_LEVELS = [100, 125, 150] as const;
+type ZoomLevel = (typeof ZOOM_LEVELS)[number];
+
+const ZoomContext = createContext<{ zoom: ZoomLevel; setZoom: (z: ZoomLevel) => void }>({
+  zoom: 100,
+  setZoom: () => {},
+});
+
+export function useZoom() {
+  return useContext(ZoomContext);
+}
+
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [demoMode, setDemoMode] = useState(false);
+  const [zoom, setZoom] = useState<ZoomLevel>(100);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("ml-ui-zoom");
+    if (saved && ZOOM_LEVELS.includes(Number(saved) as ZoomLevel)) {
+      setZoom(Number(saved) as ZoomLevel);
+    }
+  }, []);
+
+  const handleZoom = (z: ZoomLevel) => {
+    setZoom(z);
+    localStorage.setItem("ml-ui-zoom", String(z));
+  };
+
   return (
     <DemoContext.Provider value={{ demoMode, setDemoMode }}>
-      {children}
+      <ZoomContext.Provider value={{ zoom, setZoom: handleZoom }}>
+        {children}
+      </ZoomContext.Provider>
     </DemoContext.Provider>
   );
 }
@@ -27,6 +55,7 @@ export function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const { demoMode, setDemoMode } = useDemoMode();
+  const { zoom, setZoom } = useZoom();
   const supabase = createClient();
 
   useEffect(() => {
@@ -60,6 +89,22 @@ export function Header() {
         )}
         {user && (
           <>
+            {/* Zoom toggle — desktop only */}
+            <div className="hidden md:flex items-center border-2 border-[#2a2a4a]">
+              {ZOOM_LEVELS.map((z) => (
+                <button
+                  key={z}
+                  onClick={() => setZoom(z)}
+                  className={`font-pixel text-[6px] px-1.5 py-1 transition-colors ${
+                    zoom === z
+                      ? "bg-[#1a1a3a] text-pixel-cyan"
+                      : "text-gray-600 hover:text-gray-400"
+                  }`}
+                >
+                  {z}%
+                </button>
+              ))}
+            </div>
             <MusicPlayer />
             <button
               onClick={() => setShowMenu(!showMenu)}
