@@ -62,6 +62,8 @@ interface Label {
   color: string;
 }
 
+type Recurrence = "none" | "daily" | "weekdays" | "weekly" | "biweekly" | "monthly" | "yearly" | { type: "custom"; every: number; unit: "days" | "weeks" | "months" };
+
 interface Task {
   id: string;
   bucketId: string;
@@ -71,6 +73,7 @@ interface Task {
   priority: "urgent" | "important" | "medium" | "low";
   progress: "not-started" | "in-progress" | "completed";
   dueDate: string | null;
+  recurrence: Recurrence;
   labels: string[];
   checklist: ChecklistItem[];
   images: string[];
@@ -123,6 +126,41 @@ const CHART_COLORS = ["#00ffff", "#ff4444", "#ffd700", "#00ff41", "#b967ff", "#f
 function isOverdue(d: string | null) {
   if (!d) return false;
   return new Date(d) < new Date();
+}
+
+const RECURRENCE_LABELS: Record<string, string> = {
+  none: "DOES NOT REPEAT",
+  daily: "DAILY",
+  weekdays: "WEEKDAYS (MON-FRI)",
+  weekly: "WEEKLY",
+  biweekly: "EVERY 2 WEEKS",
+  monthly: "MONTHLY",
+  yearly: "YEARLY",
+  custom: "CUSTOM...",
+};
+
+function getNextDueDate(current: string, recurrence: Recurrence): string {
+  const d = new Date(current);
+  if (typeof recurrence === "object") {
+    const { every, unit } = recurrence;
+    if (unit === "days") d.setDate(d.getDate() + every);
+    else if (unit === "weeks") d.setDate(d.getDate() + every * 7);
+    else if (unit === "months") d.setMonth(d.getMonth() + every);
+    return d.toISOString();
+  }
+  switch (recurrence) {
+    case "daily": d.setDate(d.getDate() + 1); break;
+    case "weekdays": {
+      d.setDate(d.getDate() + 1);
+      while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+      break;
+    }
+    case "weekly": d.setDate(d.getDate() + 7); break;
+    case "biweekly": d.setDate(d.getDate() + 14); break;
+    case "monthly": d.setMonth(d.getMonth() + 1); break;
+    case "yearly": d.setFullYear(d.getFullYear() + 1); break;
+  }
+  return d.toISOString();
 }
 
 // ── Sortable Task Card ──
@@ -259,6 +297,11 @@ function TaskCard({
           </span>
         )}
 
+        {/* Recurrence */}
+        {task.recurrence && task.recurrence !== "none" && (
+          <span className="font-pixel text-[6px] text-pixel-purple">↻</span>
+        )}
+
         {/* Checklist count */}
         {checkTotal > 0 && (
           <span
@@ -291,11 +334,14 @@ function TaskModal({
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const [t, setT] = useState<Task>({ ...task, images: task.images || [] });
+  const [t, setT] = useState<Task>({ ...task, images: task.images || [], recurrence: task.recurrence || "none" });
   const [newCheckItem, setNewCheckItem] = useState("");
   const [uploading, setUploading] = useState(false);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
+  const [customEvery, setCustomEvery] = useState(typeof task.recurrence === "object" ? task.recurrence.every : 1);
+  const [customUnit, setCustomUnit] = useState<"days" | "weeks" | "months">(typeof task.recurrence === "object" ? task.recurrence.unit : "days");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = (patch: Partial<Task>) => {
@@ -438,6 +484,90 @@ function TaskModal({
                 setShowDatePicker(false);
               }}
             />
+          )}
+        </div>
+
+        {/* Recurrence */}
+        <div className="mb-4">
+          <p className="font-pixel text-[6px] text-gray-500 mb-1">REPEAT</p>
+          {showCustomRecurrence ? (
+            <div className="flex items-center gap-2">
+              <span className="font-pixel text-[6px] text-gray-400">EVERY</span>
+              <input
+                type="number"
+                min="1"
+                max="365"
+                className="w-14 bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1 outline-none focus:border-pixel-cyan text-center"
+                value={customEvery}
+                onChange={(e) => setCustomEvery(Math.max(1, parseInt(e.target.value) || 1))}
+              />
+              <select
+                className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1 outline-none focus:border-pixel-cyan"
+                value={customUnit}
+                onChange={(e) => setCustomUnit(e.target.value as "days" | "weeks" | "months")}
+              >
+                <option value="days">DAYS</option>
+                <option value="weeks">WEEKS</option>
+                <option value="months">MONTHS</option>
+              </select>
+              <button
+                onClick={() => {
+                  save({ recurrence: { type: "custom", every: customEvery, unit: customUnit } });
+                  setShowCustomRecurrence(false);
+                }}
+                className="pixel-btn font-pixel text-[7px] px-2"
+              >
+                OK
+              </button>
+              <button
+                onClick={() => { save({ recurrence: "none" }); setShowCustomRecurrence(false); }}
+                className="font-pixel-body text-sm text-gray-500 hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(RECURRENCE_LABELS).map(([k, v]) => {
+                const currentKey = typeof t.recurrence === "object" ? "custom" : (t.recurrence || "none");
+                const isActive = k === currentKey;
+                if (k === "custom") {
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => setShowCustomRecurrence(true)}
+                      className={`font-pixel text-[6px] px-2 py-1 border transition-colors ${
+                        isActive
+                          ? "border-pixel-cyan text-pixel-cyan bg-pixel-cyan/10"
+                          : "border-[#2a2a4a] text-gray-500 hover:text-white hover:border-gray-500"
+                      }`}
+                    >
+                      {isActive && typeof t.recurrence === "object"
+                        ? `EVERY ${t.recurrence.every} ${t.recurrence.unit.toUpperCase()}`
+                        : v}
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={k}
+                    onClick={() => save({ recurrence: k as Recurrence })}
+                    className={`font-pixel text-[6px] px-2 py-1 border transition-colors ${
+                      isActive
+                        ? "border-pixel-cyan text-pixel-cyan bg-pixel-cyan/10"
+                        : "border-[#2a2a4a] text-gray-500 hover:text-white hover:border-gray-500"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {t.recurrence !== "none" && t.dueDate && (
+            <p className="font-pixel text-[5px] text-pixel-green mt-1.5">
+              ↻ Next: {new Date(getNextDueDate(t.dueDate, t.recurrence)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            </p>
           )}
         </div>
 
@@ -1003,6 +1133,7 @@ export default function PlannerPage() {
       priority: "medium",
       progress: "not-started",
       dueDate: null,
+      recurrence: "none",
       labels: [],
       checklist: [],
       images: [],
@@ -1016,10 +1147,44 @@ export default function PlannerPage() {
 
   const updateTask = useCallback(
     (updated: Task) => {
-      setTasks(tasks.map((t) => (t.id === updated.id ? updated : t)));
+      const prev = tasks.find((t) => t.id === updated.id);
+      let newTasks = tasks.map((t) => (t.id === updated.id ? updated : t));
+
+      const justCompleted =
+        updated.progress === "completed" &&
+        prev?.progress !== "completed" &&
+        updated.recurrence !== "none" &&
+        updated.dueDate;
+
+      if (justCompleted) {
+        const nextDue = getNextDueDate(updated.dueDate!, updated.recurrence);
+        const nextTask: Task = {
+          ...updated,
+          id: uid(),
+          progress: "not-started",
+          dueDate: nextDue,
+          checklist: updated.checklist.map((c) => ({ ...c, done: false })),
+          createdAt: new Date().toISOString(),
+        };
+        newTasks = [...newTasks, nextTask];
+
+        fetch("/api/planner/schedule-reminder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskTitle: nextTask.title,
+            dueDate: nextDue,
+            priority: nextTask.priority,
+            planName: "Mission Plan",
+            bucketName: planBuckets.find((b) => b.id === nextTask.bucketId)?.name || "Bucket",
+          }),
+        }).catch(() => {});
+      }
+
+      setTasks(newTasks);
       setEditTask(updated);
     },
-    [tasks, setTasks]
+    [tasks, setTasks, planBuckets]
   );
 
   const deleteTask = useCallback(
