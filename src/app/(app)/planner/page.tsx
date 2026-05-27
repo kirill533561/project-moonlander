@@ -321,6 +321,7 @@ function TaskModal({
 
   return (
     <div
+      data-zoom-portal
       className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-3 md:p-6 md:items-center"
       onClick={onClose}
     >
@@ -655,6 +656,7 @@ function TaskModal({
         {/* Image preview modal */}
         {previewImg && (
           <div
+            data-zoom-portal
             className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 cursor-pointer"
             onClick={() => setPreviewImg(null)}
           >

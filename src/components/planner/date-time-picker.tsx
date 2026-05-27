@@ -291,7 +291,7 @@ export function DateTimePicker({ value, onChange }: Props) {
   if (typeof document === "undefined") return content;
 
   return createPortal(
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget && selectedDate) finalize(selectedDate, hour, minute); }}>
+    <div data-zoom-portal className="fixed inset-0 z-[95] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget && selectedDate) finalize(selectedDate, hour, minute); }}>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
