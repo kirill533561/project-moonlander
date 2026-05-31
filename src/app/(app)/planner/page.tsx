@@ -679,7 +679,7 @@ function TaskModal({
         <div className="mb-4">
           <p className="font-pixel text-[8px] text-gray-500 mb-1">DESCRIPTION</p>
           <textarea
-            className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-3 py-2 outline-none focus:border-pixel-cyan min-h-[60px] resize-y"
+            className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-3 py-2 outline-none focus:border-pixel-cyan min-h-[150px] resize-y"
             value={t.description}
             onChange={(e) => save({ description: e.target.value })}
             placeholder="Add description..."
@@ -875,7 +875,7 @@ function TaskModal({
         <div>
           <p className="font-pixel text-[8px] text-gray-500 mb-1">NOTES</p>
           <textarea
-            className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-3 py-2 outline-none focus:border-pixel-cyan min-h-[50px] resize-y"
+            className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-3 py-2 outline-none focus:border-pixel-cyan min-h-[130px] resize-y"
             value={t.notes}
             onChange={(e) => save({ notes: e.target.value })}
             placeholder="Add notes..."
