@@ -169,10 +169,12 @@ function SortableTaskCard({
   task,
   labels,
   onClick,
+  onToggleComplete,
 }: {
   task: Task;
   labels: Label[];
   onClick: () => void;
+  onToggleComplete: () => void;
 }) {
   const {
     attributes,
@@ -191,8 +193,37 @@ function SortableTaskCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} labels={labels} onClick={onClick} />
+      <TaskCard task={task} labels={labels} onClick={onClick} onToggleComplete={onToggleComplete} />
     </div>
+  );
+}
+
+function CompletionToggle({
+  done,
+  onToggle,
+}: {
+  done: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      // Stop the pointer event from reaching the drag listeners on the wrapper.
+      onPointerDown={(e) => e.stopPropagation()}
+      title={done ? "Mark incomplete" : "Mark complete"}
+      aria-label={done ? "Mark incomplete" : "Mark complete"}
+      className={`shrink-0 w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center text-[10px] leading-none transition-colors ${
+        done
+          ? "border-pixel-green bg-pixel-green/20 text-pixel-green"
+          : "border-[#3a3a5a] text-transparent hover:border-pixel-green hover:text-pixel-green/40"
+      }`}
+    >
+      ✓
+    </button>
   );
 }
 
@@ -200,10 +231,12 @@ function TaskCard({
   task,
   labels,
   onClick,
+  onToggleComplete,
 }: {
   task: Task;
   labels: Label[];
   onClick: () => void;
+  onToggleComplete: () => void;
 }) {
   const overdue = isOverdue(task.dueDate);
   const checkDone = task.checklist.filter((c) => c.done).length;
@@ -211,9 +244,19 @@ function TaskCard({
   const taskLabels = labels.filter((l) => task.labels.includes(l.id));
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="w-full text-left pixel-card p-4 hover:border-pixel-cyan transition-colors group"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`w-full text-left pixel-card p-4 hover:border-pixel-cyan transition-colors group cursor-pointer ${
+        task.progress === "completed" ? "opacity-70" : ""
+      }`}
     >
       {/* Image preview */}
       {task.images?.length > 0 && (
@@ -227,7 +270,7 @@ function TaskCard({
             />
           ))}
           {task.images.length > 3 && (
-            <div className="w-12 h-12 bg-[#1a1a3a] border border-[#2a2a4a] flex items-center justify-center font-pixel text-[6px] text-gray-500">
+            <div className="w-12 h-12 bg-[#1a1a3a] border border-[#2a2a4a] flex items-center justify-center font-pixel text-[8px] text-gray-500">
               +{task.images.length - 3}
             </div>
           )}
@@ -240,7 +283,7 @@ function TaskCard({
           {taskLabels.map((l) => (
             <span
               key={l.id}
-              className="font-pixel text-[6px] px-2 py-0.5"
+              className="font-pixel text-[8px] px-2 py-0.5"
               style={{ background: l.color + "25", color: l.color }}
             >
               {l.name}
@@ -249,22 +292,28 @@ function TaskCard({
         </div>
       )}
 
-      {/* Title */}
-      <p
-        className={`font-pixel-body text-lg leading-tight mb-2 ${
-          task.progress === "completed"
-            ? "text-gray-500 line-through"
-            : "text-white"
-        }`}
-      >
-        {task.title}
-      </p>
+      {/* Title + completion toggle */}
+      <div className="flex items-start gap-2 mb-2">
+        <CompletionToggle
+          done={task.progress === "completed"}
+          onToggle={onToggleComplete}
+        />
+        <p
+          className={`font-pixel-body text-lg leading-tight flex-1 ${
+            task.progress === "completed"
+              ? "text-gray-500 line-through"
+              : "text-white"
+          }`}
+        >
+          {task.title}
+        </p>
+      </div>
 
       {/* Meta row */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Priority */}
         <span
-          className="font-pixel text-[6px] px-1.5 py-0.5"
+          className="font-pixel text-[8px] px-1.5 py-0.5"
           style={{
             color: PRIORITY_COLORS[task.priority],
             border: `1px solid ${PRIORITY_COLORS[task.priority]}40`,
@@ -275,7 +324,7 @@ function TaskCard({
 
         {/* Progress */}
         <span
-          className="font-pixel text-[6px]"
+          className="font-pixel text-[8px]"
           style={{ color: PROGRESS_COLORS[task.progress] }}
         >
           {task.progress === "in-progress" && "▶ "}
@@ -286,7 +335,7 @@ function TaskCard({
         {/* Due date */}
         {task.dueDate && (
           <span
-            className={`font-pixel text-[6px] ${
+            className={`font-pixel text-[8px] ${
               overdue ? "text-pixel-red" : "text-gray-500"
             }`}
           >
@@ -299,13 +348,13 @@ function TaskCard({
 
         {/* Recurrence */}
         {task.recurrence && task.recurrence !== "none" && (
-          <span className="font-pixel text-[6px] text-pixel-purple">↻</span>
+          <span className="font-pixel text-[8px] text-pixel-purple">↻</span>
         )}
 
         {/* Checklist count */}
         {checkTotal > 0 && (
           <span
-            className={`font-pixel text-[6px] ${
+            className={`font-pixel text-[8px] ${
               checkDone === checkTotal ? "text-pixel-green" : "text-gray-500"
             }`}
           >
@@ -313,7 +362,7 @@ function TaskCard({
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -385,7 +434,7 @@ function TaskModal({
           <div className="flex gap-2 shrink-0">
             <button
               onClick={onDelete}
-              className="font-pixel text-[7px] text-pixel-red hover:text-red-300 px-2 py-1 border border-pixel-red/30 hover:border-pixel-red transition-colors"
+              className="font-pixel text-[8px] text-pixel-red hover:text-red-300 px-2 py-1 border border-pixel-red/30 hover:border-pixel-red transition-colors"
             >
               DELETE
             </button>
@@ -401,7 +450,7 @@ function TaskModal({
         {/* Bucket */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
           <div>
-            <p className="font-pixel text-[6px] text-gray-500 mb-1">BUCKET</p>
+            <p className="font-pixel text-[8px] text-gray-500 mb-1">BUCKET</p>
             <select
               className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1.5 outline-none focus:border-pixel-cyan"
               value={t.bucketId}
@@ -416,7 +465,7 @@ function TaskModal({
           </div>
 
           <div>
-            <p className="font-pixel text-[6px] text-gray-500 mb-1">PRIORITY</p>
+            <p className="font-pixel text-[8px] text-gray-500 mb-1">PRIORITY</p>
             <select
               className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1.5 outline-none focus:border-pixel-cyan"
               value={t.priority}
@@ -433,7 +482,7 @@ function TaskModal({
           </div>
 
           <div>
-            <p className="font-pixel text-[6px] text-gray-500 mb-1">PROGRESS</p>
+            <p className="font-pixel text-[8px] text-gray-500 mb-1">PROGRESS</p>
             <select
               className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-2 py-1.5 outline-none focus:border-pixel-cyan"
               value={t.progress}
@@ -452,7 +501,7 @@ function TaskModal({
 
         {/* Due date & time */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">DUE DATE & TIME</p>
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">DUE DATE & TIME</p>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowDatePicker(true)}
@@ -465,14 +514,14 @@ function TaskModal({
             {t.dueDate && (
               <button
                 onClick={() => save({ dueDate: null })}
-                className="font-pixel text-[6px] text-gray-500 hover:text-pixel-red"
+                className="font-pixel text-[8px] text-gray-500 hover:text-pixel-red"
               >
                 CLEAR
               </button>
             )}
           </div>
           {t.dueDate && (
-            <p className="font-pixel text-[5px] text-gray-600 mt-1">
+            <p className="font-pixel text-[8px] text-gray-600 mt-1">
               Email reminder 15 min before deadline
             </p>
           )}
@@ -489,10 +538,10 @@ function TaskModal({
 
         {/* Recurrence */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">REPEAT</p>
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">REPEAT</p>
           {showCustomRecurrence ? (
             <div className="flex items-center gap-2">
-              <span className="font-pixel text-[6px] text-gray-400">EVERY</span>
+              <span className="font-pixel text-[8px] text-gray-400">EVERY</span>
               <input
                 type="number"
                 min="1"
@@ -515,7 +564,7 @@ function TaskModal({
                   save({ recurrence: { type: "custom", every: customEvery, unit: customUnit } });
                   setShowCustomRecurrence(false);
                 }}
-                className="pixel-btn font-pixel text-[7px] px-2"
+                className="pixel-btn font-pixel text-[8px] px-2"
               >
                 OK
               </button>
@@ -536,7 +585,7 @@ function TaskModal({
                     <button
                       key={k}
                       onClick={() => setShowCustomRecurrence(true)}
-                      className={`font-pixel text-[6px] px-2 py-1 border transition-colors ${
+                      className={`font-pixel text-[8px] px-2 py-1 border transition-colors ${
                         isActive
                           ? "border-pixel-cyan text-pixel-cyan bg-pixel-cyan/10"
                           : "border-[#2a2a4a] text-gray-500 hover:text-white hover:border-gray-500"
@@ -552,7 +601,7 @@ function TaskModal({
                   <button
                     key={k}
                     onClick={() => save({ recurrence: k as Recurrence })}
-                    className={`font-pixel text-[6px] px-2 py-1 border transition-colors ${
+                    className={`font-pixel text-[8px] px-2 py-1 border transition-colors ${
                       isActive
                         ? "border-pixel-cyan text-pixel-cyan bg-pixel-cyan/10"
                         : "border-[#2a2a4a] text-gray-500 hover:text-white hover:border-gray-500"
@@ -565,7 +614,7 @@ function TaskModal({
             </div>
           )}
           {t.recurrence !== "none" && t.dueDate && (
-            <p className="font-pixel text-[5px] text-pixel-green mt-1.5">
+            <p className="font-pixel text-[8px] text-pixel-green mt-1.5">
               ↻ Next: {new Date(getNextDueDate(t.dueDate, t.recurrence)).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </p>
           )}
@@ -573,7 +622,7 @@ function TaskModal({
 
         {/* Labels */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">LABELS</p>
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">LABELS</p>
           <div className="flex flex-wrap gap-1.5">
             {labels.map((l) => {
               const active = t.labels.includes(l.id);
@@ -587,7 +636,7 @@ function TaskModal({
                         : [...t.labels, l.id],
                     })
                   }
-                  className="font-pixel text-[6px] px-2 py-1 border transition-colors"
+                  className="font-pixel text-[8px] px-2 py-1 border transition-colors"
                   style={{
                     color: active ? l.color : "#6b7280",
                     borderColor: active ? l.color : "#2a2a4a",
@@ -603,7 +652,7 @@ function TaskModal({
 
         {/* Description */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">DESCRIPTION</p>
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">DESCRIPTION</p>
           <textarea
             className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-3 py-2 outline-none focus:border-pixel-cyan min-h-[60px] resize-y"
             value={t.description}
@@ -614,7 +663,7 @@ function TaskModal({
 
         {/* Checklist */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">
             CHECKLIST{" "}
             {t.checklist.length > 0 &&
               `(${t.checklist.filter((c) => c.done).length}/${t.checklist.length})`}
@@ -690,7 +739,7 @@ function TaskModal({
             />
             <button
               type="submit"
-              className="pixel-btn font-pixel text-[7px] px-3"
+              className="pixel-btn font-pixel text-[8px] px-3"
             >
               ADD
             </button>
@@ -699,7 +748,7 @@ function TaskModal({
 
         {/* Images */}
         <div className="mb-4">
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">
             IMAGES {t.images.length > 0 && `(${t.images.length})`}
           </p>
 
@@ -776,7 +825,7 @@ function TaskModal({
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="font-pixel text-[7px] text-gray-500 hover:text-pixel-cyan border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan px-3 py-2 w-full transition-colors disabled:opacity-50"
+            className="font-pixel text-[8px] text-gray-500 hover:text-pixel-cyan border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan px-3 py-2 w-full transition-colors disabled:opacity-50"
           >
             {uploading ? "UPLOADING..." : "+ ADD IMAGES"}
           </button>
@@ -799,7 +848,7 @@ function TaskModal({
 
         {/* Notes */}
         <div>
-          <p className="font-pixel text-[6px] text-gray-500 mb-1">NOTES</p>
+          <p className="font-pixel text-[8px] text-gray-500 mb-1">NOTES</p>
           <textarea
             className="w-full bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body text-sm px-3 py-2 outline-none focus:border-pixel-cyan min-h-[50px] resize-y"
             value={t.notes}
@@ -866,15 +915,15 @@ function ChartsView({
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {/* Summary tiles */}
       <div className="pixel-card p-3 text-center">
-        <p className="font-pixel text-[7px] text-gray-500 mb-1">TOTAL TASKS</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-1">TOTAL TASKS</p>
         <p className="font-pixel text-lg text-pixel-cyan">{tasks.length}</p>
       </div>
       <div className="pixel-card p-3 text-center">
-        <p className="font-pixel text-[7px] text-gray-500 mb-1">COMPLETED</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-1">COMPLETED</p>
         <p className="font-pixel text-lg text-pixel-green">{completionPct}%</p>
       </div>
       <div className="pixel-card p-3 text-center">
-        <p className="font-pixel text-[7px] text-gray-500 mb-1">OVERDUE</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-1">OVERDUE</p>
         <p
           className={`font-pixel text-lg ${overdue > 0 ? "text-pixel-red" : "text-gray-500"}`}
         >
@@ -882,7 +931,7 @@ function ChartsView({
         </p>
       </div>
       <div className="pixel-card p-3 text-center">
-        <p className="font-pixel text-[7px] text-gray-500 mb-1">CHECKLIST</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-1">CHECKLIST</p>
         <p className="font-pixel text-lg text-pixel-purple">
           {doneChecklist}/{totalChecklist}
         </p>
@@ -890,7 +939,7 @@ function ChartsView({
 
       {/* Progress pie */}
       <div className="pixel-card p-3 col-span-2">
-        <p className="font-pixel text-[7px] text-gray-500 mb-2">BY STATUS</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-2">BY STATUS</p>
         <ResponsiveContainer width="100%" height={160}>
           <PieChart>
             <Pie
@@ -922,7 +971,7 @@ function ChartsView({
           {byProgress.map((d) => (
             <span
               key={d.name}
-              className="font-pixel text-[5px] flex items-center gap-1"
+              className="font-pixel text-[8px] flex items-center gap-1"
             >
               <span
                 className="w-2 h-2 inline-block"
@@ -936,7 +985,7 @@ function ChartsView({
 
       {/* Priority bar */}
       <div className="pixel-card p-3 col-span-2">
-        <p className="font-pixel text-[7px] text-gray-500 mb-2">BY PRIORITY</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-2">BY PRIORITY</p>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={byPriority.filter((d) => d.value > 0)}>
             <XAxis
@@ -971,7 +1020,7 @@ function ChartsView({
 
       {/* By bucket */}
       <div className="pixel-card p-3 col-span-2 md:col-span-4">
-        <p className="font-pixel text-[7px] text-gray-500 mb-2">BY BUCKET</p>
+        <p className="font-pixel text-[8px] text-gray-500 mb-2">BY BUCKET</p>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={byBucket}>
             <XAxis
@@ -1032,6 +1081,7 @@ export default function PlannerPage() {
   const [editBucketId, setEditBucketId] = useState<string | null>(null);
   const [editBucketName, setEditBucketName] = useState("");
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const [expandedCompleted, setExpandedCompleted] = useState<Record<string, boolean>>({});
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterLabel, setFilterLabel] = useState<string>("all");
   const [filterProgress, setFilterProgress] = useState<string>("all");
@@ -1182,9 +1232,21 @@ export default function PlannerPage() {
       }
 
       setTasks(newTasks);
-      setEditTask(updated);
+      // Keep the modal in sync only if it's already open for this task —
+      // never auto-open it (so completing from a card stays inline).
+      setEditTask((cur) => (cur && cur.id === updated.id ? updated : cur));
     },
     [tasks, setTasks, planBuckets]
+  );
+
+  const toggleComplete = useCallback(
+    (task: Task) => {
+      updateTask({
+        ...task,
+        progress: task.progress === "completed" ? "not-started" : "completed",
+      });
+    },
+    [updateTask]
   );
 
   const deleteTask = useCallback(
@@ -1283,7 +1345,7 @@ export default function PlannerPage() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {/* Plan selector */}
         <select
-          className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel text-[7px] px-2 py-2 outline-none focus:border-pixel-cyan"
+          className="bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel text-[8px] px-2 py-2 outline-none focus:border-pixel-cyan"
           value={activePlanId}
           onChange={(e) => setActivePlanId(e.target.value)}
         >
@@ -1309,7 +1371,7 @@ export default function PlannerPage() {
               onChange={(e) => setNewPlanName(e.target.value)}
               placeholder="Plan name..."
             />
-            <button type="submit" className="pixel-btn font-pixel text-[7px] px-2">
+            <button type="submit" className="pixel-btn font-pixel text-[8px] px-2">
               OK
             </button>
             <button
@@ -1323,7 +1385,7 @@ export default function PlannerPage() {
         ) : (
           <button
             onClick={() => setShowNewPlan(true)}
-            className="font-pixel text-[7px] text-gray-500 hover:text-pixel-cyan border-2 border-[#2a2a4a] hover:border-pixel-cyan px-2 py-1.5 transition-colors"
+            className="font-pixel text-[8px] text-gray-500 hover:text-pixel-cyan border-2 border-[#2a2a4a] hover:border-pixel-cyan px-2 py-1.5 transition-colors"
           >
             + NEW PLAN
           </button>
@@ -1334,7 +1396,7 @@ export default function PlannerPage() {
             onClick={() => {
               if (confirm(`Delete plan "${plan.name}"?`)) deletePlan(plan.id);
             }}
-            className="font-pixel text-[7px] text-gray-600 hover:text-pixel-red px-2 py-1.5 transition-colors"
+            className="font-pixel text-[8px] text-gray-600 hover:text-pixel-red px-2 py-1.5 transition-colors"
           >
             DELETE PLAN
           </button>
@@ -1348,7 +1410,7 @@ export default function PlannerPage() {
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`font-pixel text-[7px] px-3 py-1.5 border-2 transition-colors ${
+              className={`font-pixel text-[8px] px-3 py-1.5 border-2 transition-colors ${
                 view === v
                   ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a]"
                   : "border-[#2a2a4a] text-gray-500 hover:text-white"
@@ -1361,7 +1423,7 @@ export default function PlannerPage() {
 
         <button
           onClick={() => setShowLabelManager(!showLabelManager)}
-          className="font-pixel text-[7px] text-gray-500 hover:text-pixel-purple border-2 border-[#2a2a4a] hover:border-pixel-purple px-2 py-1.5 transition-colors"
+          className="font-pixel text-[8px] text-gray-500 hover:text-pixel-purple border-2 border-[#2a2a4a] hover:border-pixel-purple px-2 py-1.5 transition-colors"
         >
           LABELS
         </button>
@@ -1370,7 +1432,7 @@ export default function PlannerPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
         <select
-          className="bg-[#1a1a3a] border border-[#2a2a4a] text-white font-pixel text-[6px] px-2 py-1 outline-none"
+          className="bg-[#1a1a3a] border border-[#2a2a4a] text-white font-pixel text-[8px] px-2 py-1 outline-none"
           value={filterPriority}
           onChange={(e) => setFilterPriority(e.target.value)}
         >
@@ -1380,7 +1442,7 @@ export default function PlannerPage() {
           ))}
         </select>
         <select
-          className="bg-[#1a1a3a] border border-[#2a2a4a] text-white font-pixel text-[6px] px-2 py-1 outline-none"
+          className="bg-[#1a1a3a] border border-[#2a2a4a] text-white font-pixel text-[8px] px-2 py-1 outline-none"
           value={filterProgress}
           onChange={(e) => setFilterProgress(e.target.value)}
         >
@@ -1390,7 +1452,7 @@ export default function PlannerPage() {
           ))}
         </select>
         <select
-          className="bg-[#1a1a3a] border border-[#2a2a4a] text-white font-pixel text-[6px] px-2 py-1 outline-none"
+          className="bg-[#1a1a3a] border border-[#2a2a4a] text-white font-pixel text-[8px] px-2 py-1 outline-none"
           value={filterLabel}
           onChange={(e) => setFilterLabel(e.target.value)}
         >
@@ -1406,7 +1468,7 @@ export default function PlannerPage() {
               setFilterLabel("all");
               setFilterProgress("all");
             }}
-            className="font-pixel text-[6px] text-pixel-red hover:text-red-300"
+            className="font-pixel text-[8px] text-pixel-red hover:text-red-300"
           >
             CLEAR FILTERS
           </button>
@@ -1428,7 +1490,7 @@ export default function PlannerPage() {
                   className="w-3 h-3 shrink-0"
                   style={{ background: l.color }}
                 />
-                <span className="font-pixel text-[6px]" style={{ color: l.color }}>
+                <span className="font-pixel text-[8px]" style={{ color: l.color }}>
                   {l.name}
                 </span>
                 <button
@@ -1459,7 +1521,7 @@ export default function PlannerPage() {
               value={newLabelColor}
               onChange={(e) => setNewLabelColor(e.target.value)}
             />
-            <button type="submit" className="pixel-btn font-pixel text-[7px] px-3">
+            <button type="submit" className="pixel-btn font-pixel text-[8px] px-3">
               ADD
             </button>
           </form>
@@ -1484,7 +1546,7 @@ export default function PlannerPage() {
                   <button
                     key={b.id}
                     onClick={() => setMobileBucket(i)}
-                    className={`font-pixel text-[7px] px-3 py-2 border-2 shrink-0 transition-colors ${
+                    className={`font-pixel text-[8px] px-3 py-2 border-2 shrink-0 transition-colors ${
                       mobileBucket === i
                         ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a]"
                         : "border-[#2a2a4a] text-gray-500"
@@ -1496,7 +1558,7 @@ export default function PlannerPage() {
               })}
               <button
                 onClick={addBucket}
-                className="font-pixel text-[7px] px-3 py-2 border-2 border-dashed border-[#2a2a4a] text-gray-600 shrink-0"
+                className="font-pixel text-[8px] px-3 py-2 border-2 border-dashed border-[#2a2a4a] text-gray-600 shrink-0"
               >
                 +
               </button>
@@ -1507,6 +1569,9 @@ export default function PlannerPage() {
               const bucketTasks = filteredTasks
                 .filter((t) => t.bucketId === bucket.id)
                 .sort((a, b) => a.order - b.order);
+              const activeTasks = bucketTasks.filter((t) => t.progress !== "completed");
+              const completedTasks = bucketTasks.filter((t) => t.progress === "completed");
+              const showDone = expandedCompleted[bucket.id];
               return (
                 <div>
                   <div className="flex items-center justify-between mb-2 px-1">
@@ -1537,10 +1602,10 @@ export default function PlannerPage() {
                       ×
                     </button>
                   </div>
-                  <SortableContext items={bucketTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={activeTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="flex flex-col gap-2 min-h-[200px] p-3 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
-                      {bucketTasks.map((task) => (
-                        <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} />
+                      {activeTasks.map((task) => (
+                        <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} onToggleComplete={() => toggleComplete(task)} />
                       ))}
                       <button
                         onClick={() => addTask(bucket.id)}
@@ -1548,6 +1613,26 @@ export default function PlannerPage() {
                       >
                         + ADD TASK
                       </button>
+
+                      {/* Completed (collapsed, Teams-style) */}
+                      {completedTasks.length > 0 && (
+                        <div className="mt-1">
+                          <button
+                            onClick={() => setExpandedCompleted((s) => ({ ...s, [bucket.id]: !s[bucket.id] }))}
+                            className="w-full flex items-center gap-2 font-pixel text-[8px] text-pixel-green/80 hover:text-pixel-green py-2 transition-colors"
+                          >
+                            <span>{showDone ? "▼" : "▶"}</span>
+                            <span>COMPLETED ({completedTasks.length})</span>
+                          </button>
+                          {showDone && (
+                            <div className="flex flex-col gap-2">
+                              {completedTasks.map((task) => (
+                                <TaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} onToggleComplete={() => toggleComplete(task)} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </SortableContext>
                 </div>
@@ -1561,6 +1646,9 @@ export default function PlannerPage() {
               const bucketTasks = filteredTasks
                 .filter((t) => t.bucketId === bucket.id)
                 .sort((a, b) => a.order - b.order);
+              const activeTasks = bucketTasks.filter((t) => t.progress !== "completed");
+              const completedTasks = bucketTasks.filter((t) => t.progress === "completed");
+              const showDone = expandedCompleted[bucket.id];
 
               return (
                 <div
@@ -1589,7 +1677,7 @@ export default function PlannerPage() {
                       </button>
                     )}
                     <div className="flex items-center gap-1">
-                      <span className="font-pixel text-[7px] text-gray-600">{bucketTasks.length}</span>
+                      <span className="font-pixel text-[8px] text-gray-600">{bucketTasks.length}</span>
                       <button
                         onClick={() => { if (confirm(`Delete bucket "${bucket.name}"?`)) deleteBucket(bucket.id); }}
                         className="font-pixel-body text-xs text-gray-600 hover:text-pixel-red transition-colors"
@@ -1598,17 +1686,37 @@ export default function PlannerPage() {
                       </button>
                     </div>
                   </div>
-                  <SortableContext items={bucketTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={activeTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="flex flex-col gap-2 min-h-[100px] p-2 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
-                      {bucketTasks.map((task) => (
-                        <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} />
+                      {activeTasks.map((task) => (
+                        <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} onToggleComplete={() => toggleComplete(task)} />
                       ))}
                       <button
                         onClick={() => addTask(bucket.id)}
-                        className="w-full font-pixel text-[7px] text-gray-600 hover:text-pixel-cyan py-2 border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan transition-colors"
+                        className="w-full font-pixel text-[8px] text-gray-600 hover:text-pixel-cyan py-2 border-2 border-dashed border-[#2a2a4a] hover:border-pixel-cyan transition-colors"
                       >
                         + ADD TASK
                       </button>
+
+                      {/* Completed (collapsed, Teams-style) */}
+                      {completedTasks.length > 0 && (
+                        <div className="mt-1">
+                          <button
+                            onClick={() => setExpandedCompleted((s) => ({ ...s, [bucket.id]: !s[bucket.id] }))}
+                            className="w-full flex items-center gap-2 font-pixel text-[8px] text-pixel-green/80 hover:text-pixel-green py-2 transition-colors"
+                          >
+                            <span>{showDone ? "▼" : "▶"}</span>
+                            <span>COMPLETED ({completedTasks.length})</span>
+                          </button>
+                          {showDone && (
+                            <div className="flex flex-col gap-2">
+                              {completedTasks.map((task) => (
+                                <TaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} onToggleComplete={() => toggleComplete(task)} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </SortableContext>
                 </div>
@@ -1632,6 +1740,7 @@ export default function PlannerPage() {
                   task={draggedTask}
                   labels={labels}
                   onClick={() => {}}
+                  onToggleComplete={() => {}}
                 />
               </div>
             )}

@@ -99,7 +99,7 @@ function CassetteLabel({ track }: { track: (typeof TRACKS)[number] }) {
       className="w-full h-full flex items-center justify-center p-2 relative overflow-hidden"
       style={{ background: `linear-gradient(145deg, ${track.color}15, #0a0a1a 50%, ${track.color}08)` }}
     >
-      <span className="font-pixel text-[5px] md:text-[6px] leading-relaxed text-center" style={{ color: track.color }}>
+      <span className="font-pixel text-[8px] md:text-[8px] leading-relaxed text-center" style={{ color: track.color }}>
         {track.title}
       </span>
     </div>
@@ -202,7 +202,7 @@ export function MusicPlayer() {
         {playing && track && !open && (
           <div className="hidden sm:flex items-center gap-1.5 max-w-[140px]">
             <div className="w-1.5 h-1.5 bg-pixel-green shrink-0 animate-pulse" style={{ boxShadow: "0 0 4px #00ff41" }} />
-            <p className="font-pixel text-[6px] text-pixel-cyan truncate">{track.title}</p>
+            <p className="font-pixel text-[8px] text-pixel-cyan truncate">{track.title}</p>
           </div>
         )}
         <button
@@ -266,13 +266,13 @@ export function MusicPlayer() {
 
                     {/* Brand */}
                     <div className="flex items-center justify-between px-5 pt-3 pb-2">
-                      <p className="font-pixel text-[7px] text-gray-500 tracking-[0.25em]">MOONLANDER</p>
+                      <p className="font-pixel text-[8px] text-gray-500 tracking-[0.25em]">MOONLANDER</p>
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-2 h-2 ${playing ? "bg-pixel-green" : "bg-gray-700"}`}
                           style={playing ? { boxShadow: "0 0 6px #00ff41, 0 0 12px #00ff4140" } : {}}
                         />
-                        <p className="font-pixel text-[6px] text-gray-600">{playing ? "PLAY" : "STOP"}</p>
+                        <p className="font-pixel text-[8px] text-gray-600">{playing ? "PLAY" : "STOP"}</p>
                       </div>
                     </div>
 
@@ -311,7 +311,7 @@ export function MusicPlayer() {
                       )}
 
                       {!track && inserting === null && (
-                        <p className="font-pixel text-[6px] text-gray-600 text-center mt-4 tracking-wider animate-pulse">INSERT TAPE</p>
+                        <p className="font-pixel text-[8px] text-gray-600 text-center mt-4 tracking-wider animate-pulse">INSERT TAPE</p>
                       )}
 
                       <AnimatePresence>
@@ -347,7 +347,7 @@ export function MusicPlayer() {
 
                     {/* Now playing */}
                     <div className="px-5 mb-2">
-                      <p className="font-pixel text-[7px] md:text-[8px] text-pixel-cyan text-center truncate h-4">
+                      <p className="font-pixel text-[8px] md:text-[8px] text-pixel-cyan text-center truncate h-4">
                         {track ? track.title : "SELECT A CASSETTE"}
                       </p>
                     </div>
@@ -412,7 +412,7 @@ export function MusicPlayer() {
                   </div>
 
                   {/* ── Tape collection ── */}
-                  <p className="font-pixel text-[7px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">TAPE COLLECTION</p>
+                  <p className="font-pixel text-[8px] text-gray-500 mt-6 mb-3 tracking-[0.15em]">TAPE COLLECTION</p>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-4 md:gap-3">
                     {TRACKS.map((t, i) => {
                       const isLoaded = loaded === i;
@@ -506,7 +506,7 @@ export function MusicPlayer() {
 
                             {/* Title strip */}
                             <div className="px-1.5 py-1" style={{ borderTop: `1px solid ${t.color}15` }}>
-                              <p className="font-pixel text-[4px] md:text-[5px] truncate text-center" style={{ color: isLoaded ? t.color : "#6b7280" }}>
+                              <p className="font-pixel text-[4px] md:text-[8px] truncate text-center" style={{ color: isLoaded ? t.color : "#6b7280" }}>
                                 {t.title}
                               </p>
                             </div>

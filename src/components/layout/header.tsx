@@ -78,12 +78,12 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-space-deeper/90 backdrop-blur border-b-2 border-[#2a2a4a]">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-14 md:h-20 px-4 md:px-7 bg-space-deeper/90 backdrop-blur border-b-2 border-[#2a2a4a]">
       <div className="md:hidden">
         <span className="font-pixel text-[10px] text-pixel-cyan">MOONLANDER</span>
       </div>
 
-      <div className="flex items-center gap-3 ml-auto relative" data-header-menu>
+      <div className="flex items-center gap-3 md:gap-4 ml-auto relative" data-header-menu>
         {demoMode && (
           <span className="font-pixel text-[8px] text-pixel-gold animate-glow">DEMO</span>
         )}
@@ -95,7 +95,7 @@ export function Header() {
                 <button
                   key={z}
                   onClick={() => setZoom(z)}
-                  className={`font-pixel text-[6px] px-1.5 py-1 transition-colors ${
+                  className={`font-pixel text-[8px] md:text-[9px] px-1.5 md:px-2 py-1 md:py-1.5 transition-colors ${
                     zoom === z
                       ? "bg-[#1a1a3a] text-pixel-cyan"
                       : "text-gray-600 hover:text-gray-400"
@@ -114,10 +114,10 @@ export function Header() {
                 <img
                   src={user.user_metadata.avatar_url}
                   alt=""
-                  className="w-9 h-9 border-2 border-pixel-cyan cursor-pointer hover:border-pixel-gold transition-colors"
+                  className="w-9 h-9 md:w-11 md:h-11 border-2 border-pixel-cyan cursor-pointer hover:border-pixel-gold transition-colors"
                 />
               ) : (
-                <div className="w-9 h-9 border-2 border-pixel-cyan bg-[#1a1a3a] flex items-center justify-center font-pixel-body text-lg text-pixel-cyan">
+                <div className="w-9 h-9 md:w-11 md:h-11 border-2 border-pixel-cyan bg-[#1a1a3a] flex items-center justify-center font-pixel-body text-lg md:text-xl text-pixel-cyan">
                   {(user.email || "?")[0].toUpperCase()}
                 </div>
               )}

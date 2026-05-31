@@ -217,7 +217,7 @@ export function DateTimePicker({ value, onChange }: Props) {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setStep("date")}
-            className={`font-pixel text-[7px] px-2 py-1 transition-colors ${step === "date" ? "text-pixel-cyan" : "text-gray-500 hover:text-gray-300"}`}
+            className={`font-pixel text-[8px] px-2 py-1 transition-colors ${step === "date" ? "text-pixel-cyan" : "text-gray-500 hover:text-gray-300"}`}
           >
             {selectedDate ? selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "DATE"}
           </button>
@@ -237,7 +237,7 @@ export function DateTimePicker({ value, onChange }: Props) {
           )}
         </div>
         {value && (
-          <button onClick={clear} className="font-pixel text-[6px] text-pixel-red hover:text-red-300">CLEAR</button>
+          <button onClick={clear} className="font-pixel text-[8px] text-pixel-red hover:text-red-300">CLEAR</button>
         )}
       </div>
 
@@ -246,11 +246,11 @@ export function DateTimePicker({ value, onChange }: Props) {
           <motion.div key="date" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.15 }}>
             <div className="flex items-center justify-between mb-2">
               <button onClick={prevMonth} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2">◀</button>
-              <p className="font-pixel text-[7px] text-gray-400">{MONTHS[viewMonth]} {viewYear}</p>
+              <p className="font-pixel text-[8px] text-gray-400">{MONTHS[viewMonth]} {viewYear}</p>
               <button onClick={nextMonth} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2">▶</button>
             </div>
             <div className="grid grid-cols-7 gap-0.5">
-              {DAYS.map((d) => <div key={d} className="font-pixel text-[5px] text-gray-600 text-center py-1">{d}</div>)}
+              {DAYS.map((d) => <div key={d} className="font-pixel text-[8px] text-gray-600 text-center py-1">{d}</div>)}
               {Array.from({ length: offset }).map((_, i) => <div key={`e${i}`} />)}
               {Array.from({ length: days }).map((_, i) => {
                 const day = i + 1;
@@ -273,14 +273,14 @@ export function DateTimePicker({ value, onChange }: Props) {
 
         {step === "hour" && (
           <motion.div key="hour" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }} transition={{ duration: 0.15 }} className="flex flex-col items-center">
-            <p className="font-pixel text-[6px] text-gray-600 mb-2">SELECT HOUR</p>
+            <p className="font-pixel text-[8px] text-gray-600 mb-2">SELECT HOUR</p>
             <ClockDial mode="hour" hour={hour} minute={minute} onHourChange={setHour} onMinuteChange={setMinute} onDone={() => setStep("minute")} />
           </motion.div>
         )}
 
         {step === "minute" && (
           <motion.div key="minute" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }} transition={{ duration: 0.15 }} className="flex flex-col items-center">
-            <p className="font-pixel text-[6px] text-gray-600 mb-2">SELECT MINUTE</p>
+            <p className="font-pixel text-[8px] text-gray-600 mb-2">SELECT MINUTE</p>
             <ClockDial mode="minute" hour={hour} minute={minute} onHourChange={setHour} onMinuteChange={setMinute} onDone={() => { if (selectedDate) finalize(selectedDate, hour, minute); }} />
           </motion.div>
         )}

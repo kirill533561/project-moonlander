@@ -558,7 +558,7 @@ export default function GoalsPage() {
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
                     {MONTHS.map((month, idx) => (
                       <div key={month} className="flex flex-col items-center gap-1">
-                        <span className="font-pixel text-[7px] text-gray-500">
+                        <span className="font-pixel text-[8px] text-gray-500">
                           {month.toUpperCase()}
                         </span>
                         <input
@@ -682,7 +682,7 @@ export default function GoalsPage() {
                               : "border-gray-600 hover:border-pixel-cyan text-gray-400 hover:text-white"
                         }`}
                       >
-                        <span className="font-pixel text-[7px]">
+                        <span className="font-pixel text-[8px]">
                           {month.toUpperCase()}
                         </span>
                         {active && (
@@ -809,7 +809,7 @@ export default function GoalsPage() {
                           }
                         >
                           <span
-                            className={`font-pixel text-[7px] ${
+                            className={`font-pixel text-[8px] ${
                               current ? "text-pixel-cyan" : "text-gray-500"
                             }`}
                           >
