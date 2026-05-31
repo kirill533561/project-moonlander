@@ -1082,6 +1082,7 @@ export default function PlannerPage() {
   const [editBucketName, setEditBucketName] = useState("");
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
   const [expandedCompleted, setExpandedCompleted] = useState<Record<string, boolean>>({});
+  const [deleteBucketId, setDeleteBucketId] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterLabel, setFilterLabel] = useState<string>("all");
   const [filterProgress, setFilterProgress] = useState<string>("all");
@@ -1163,6 +1164,26 @@ export default function PlannerPage() {
   const deleteBucket = (id: string) => {
     setBuckets(buckets.filter((b) => b.id !== id));
     setTasks(tasks.filter((t) => t.bucketId !== id));
+  };
+
+  // Swap a bucket one slot left/right and renormalize order across the plan.
+  const moveBucket = (id: string, dir: "left" | "right") => {
+    const idx = planBuckets.findIndex((b) => b.id === id);
+    const swapIdx = dir === "left" ? idx - 1 : idx + 1;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= planBuckets.length) return;
+    const reordered = arrayMove(planBuckets, idx, swapIdx).map((b, i) => ({
+      ...b,
+      order: i,
+    }));
+    setBuckets(buckets.map((bk) => reordered.find((r) => r.id === bk.id) || bk));
+  };
+
+  const confirmDeleteBucket = () => {
+    if (!deleteBucketId) return;
+    deleteBucket(deleteBucketId);
+    // Keep the mobile single-bucket view in range after removal.
+    setMobileBucket((m) => Math.max(0, Math.min(m, planBuckets.length - 2)));
+    setDeleteBucketId(null);
   };
 
   // ── Task CRUD ──
@@ -1595,12 +1616,34 @@ export default function PlannerPage() {
                         {bucket.name}
                       </button>
                     )}
-                    <button
-                      onClick={() => { if (confirm(`Delete bucket "${bucket.name}"?`)) { deleteBucket(bucket.id); setMobileBucket(Math.max(0, mobileBucket - 1)); } }}
-                      className="font-pixel-body text-sm text-gray-600 hover:text-pixel-red"
-                    >
-                      ×
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        disabled={mobileBucket === 0}
+                        onClick={() => { moveBucket(bucket.id, "left"); setMobileBucket(Math.max(0, mobileBucket - 1)); }}
+                        title="Move bucket left"
+                        aria-label="Move bucket left"
+                        className="font-pixel-body text-base text-gray-500 hover:text-pixel-cyan disabled:opacity-20 transition-colors"
+                      >
+                        ◀
+                      </button>
+                      <button
+                        disabled={mobileBucket === planBuckets.length - 1}
+                        onClick={() => { moveBucket(bucket.id, "right"); setMobileBucket(Math.min(planBuckets.length - 1, mobileBucket + 1)); }}
+                        title="Move bucket right"
+                        aria-label="Move bucket right"
+                        className="font-pixel-body text-base text-gray-500 hover:text-pixel-cyan disabled:opacity-20 transition-colors"
+                      >
+                        ▶
+                      </button>
+                      <button
+                        onClick={() => setDeleteBucketId(bucket.id)}
+                        title="Delete bucket"
+                        aria-label="Delete bucket"
+                        className="font-pixel-body text-sm text-gray-500 hover:text-pixel-red transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                   <SortableContext items={activeTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="flex flex-col gap-2 min-h-[200px] p-3 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
@@ -1642,7 +1685,7 @@ export default function PlannerPage() {
 
           {/* Desktop: horizontal columns */}
           <div className="hidden md:flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 min-h-[300px]">
-            {planBuckets.map((bucket) => {
+            {planBuckets.map((bucket, bucketIndex) => {
               const bucketTasks = filteredTasks
                 .filter((t) => t.bucketId === bucket.id)
                 .sort((a, b) => a.order - b.order);
@@ -1676,11 +1719,31 @@ export default function PlannerPage() {
                         {bucket.name}
                       </button>
                     )}
-                    <div className="flex items-center gap-1">
-                      <span className="font-pixel text-[8px] text-gray-600">{bucketTasks.length}</span>
+                    <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => { if (confirm(`Delete bucket "${bucket.name}"?`)) deleteBucket(bucket.id); }}
-                        className="font-pixel-body text-xs text-gray-600 hover:text-pixel-red transition-colors"
+                        disabled={bucketIndex === 0}
+                        onClick={() => moveBucket(bucket.id, "left")}
+                        title="Move bucket left"
+                        aria-label="Move bucket left"
+                        className="font-pixel-body text-sm text-gray-500 hover:text-pixel-cyan disabled:opacity-20 transition-colors"
+                      >
+                        ◀
+                      </button>
+                      <button
+                        disabled={bucketIndex === planBuckets.length - 1}
+                        onClick={() => moveBucket(bucket.id, "right")}
+                        title="Move bucket right"
+                        aria-label="Move bucket right"
+                        className="font-pixel-body text-sm text-gray-500 hover:text-pixel-cyan disabled:opacity-20 transition-colors"
+                      >
+                        ▶
+                      </button>
+                      <span className="font-pixel text-[8px] text-gray-500 mx-0.5">{bucketTasks.length}</span>
+                      <button
+                        onClick={() => setDeleteBucketId(bucket.id)}
+                        title="Delete bucket"
+                        aria-label="Delete bucket"
+                        className="font-pixel-body text-xs text-gray-500 hover:text-pixel-red transition-colors"
                       >
                         ×
                       </button>
@@ -1764,6 +1827,54 @@ export default function PlannerPage() {
           onClose={() => setEditTask(null)}
         />
       )}
+
+      {/* Bucket delete confirmation */}
+      {deleteBucketId && (() => {
+        const target = planBuckets.find((b) => b.id === deleteBucketId);
+        if (!target) return null;
+        const count = planTasks.filter((t) => t.bucketId === target.id).length;
+        return (
+          <div
+            className="fixed inset-0 z-[95] flex items-center justify-center p-4"
+            onClick={() => setDeleteBucketId(null)}
+          >
+            <div className="fixed inset-0 bg-[#060612]/85 backdrop-blur-sm" />
+            <div
+              className="relative z-10 w-full max-w-sm pixel-card p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="font-pixel text-[10px] text-pixel-red mb-3">DELETE BUCKET</p>
+              <p className="font-pixel-body text-lg text-gray-300 mb-2">
+                Delete <span className="text-pixel-cyan">{target.name}</span>?
+              </p>
+              {count > 0 ? (
+                <p className="font-pixel-body text-base text-pixel-red mb-5 leading-snug">
+                  ⚠ This bucket contains {count} task{count === 1 ? "" : "s"}. Deleting it will
+                  permanently delete {count === 1 ? "that task" : "those tasks"} too.
+                </p>
+              ) : (
+                <p className="font-pixel-body text-base text-gray-500 mb-5">
+                  This bucket is empty.
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setDeleteBucketId(null)}
+                  className="font-pixel text-[8px] text-gray-400 hover:text-white border-2 border-[#2a2a4a] hover:border-gray-500 px-3 py-2 transition-colors"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={confirmDeleteBucket}
+                  className="font-pixel text-[8px] text-pixel-red hover:text-white border-2 border-pixel-red/40 hover:border-pixel-red hover:bg-pixel-red/20 px-3 py-2 transition-colors"
+                >
+                  DELETE
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
