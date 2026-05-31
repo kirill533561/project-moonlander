@@ -48,6 +48,7 @@ interface Bucket {
   planId: string;
   name: string;
   order: number;
+  color?: string;
 }
 
 interface ChecklistItem {
@@ -123,10 +124,33 @@ const DEFAULT_LABELS: Label[] = [
 
 const CHART_COLORS = ["#00ffff", "#ff4444", "#ffd700", "#00ff41", "#b967ff", "#ff69b4", "#ff8844"];
 
+// Bucket color coding — used by the board header swatch, Today view, and calendar.
+const BUCKET_PALETTE = ["#00ffff", "#00ff41", "#ffd700", "#b967ff", "#ff8844", "#ff4444", "#4488ff", "#ff69b4"];
+
+// Resolve a color for every bucket, falling back to the palette by position
+// so buckets saved before colors existed still render coded.
+function resolveBucketColors(buckets: Bucket[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  buckets.forEach((b, i) => {
+    map[b.id] = b.color || BUCKET_PALETTE[i % BUCKET_PALETTE.length];
+  });
+  return map;
+}
+
 function isOverdue(d: string | null) {
   if (!d) return false;
   return new Date(d) < new Date();
 }
+
+// ── Date helpers (calendar + agenda; Monday-start weeks) ──
+function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function startOfWeek(d: Date) { const x = startOfDay(d); return addDays(x, -((x.getDay() + 6) % 7)); }
+function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
 const RECURRENCE_LABELS: Record<string, string> = {
   none: "DOES NOT REPEAT",
@@ -1051,6 +1075,363 @@ function ChartsView({
   );
 }
 
+// ── Bucket color picker dot ──
+
+function BucketColorDot({ color, onPick }: { color: string; onPick: (c: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative shrink-0">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        title="Bucket color"
+        aria-label="Change bucket color"
+        className="w-3.5 h-3.5 border border-black/40 hover:ring-2 hover:ring-white/30 transition-shadow"
+        style={{ background: color }}
+      />
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />
+          <div className="absolute z-50 top-5 left-0 pixel-card p-2 flex gap-1.5 flex-wrap w-[124px]">
+            {BUCKET_PALETTE.map((c) => (
+              <button
+                key={c}
+                onClick={(e) => { e.stopPropagation(); onPick(c); setOpen(false); }}
+                className="w-4 h-4 border border-black/40 hover:scale-125 transition-transform"
+                style={{ background: c, outline: c === color ? "2px solid #fff" : "none" }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Today / Upcoming agenda view ──
+
+function AgendaRow({
+  task,
+  color,
+  bucketName,
+  onClick,
+  onToggleComplete,
+}: {
+  task: Task;
+  color: string;
+  bucketName: string;
+  onClick: () => void;
+  onToggleComplete: () => void;
+}) {
+  const overdue = isOverdue(task.dueDate);
+  const checkTotal = task.checklist.length;
+  const checkDone = task.checklist.filter((c) => c.done).length;
+  return (
+    <div className="flex items-start gap-2 pixel-card p-2.5">
+      <CompletionToggle done={task.progress === "completed"} onToggle={onToggleComplete} />
+      <button onClick={onClick} className="flex-1 min-w-0 text-left">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 shrink-0" style={{ background: color }} />
+          <span className="font-pixel-body text-lg text-white truncate">{task.title}</span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap mt-1 pl-4">
+          {task.dueDate && (
+            <span className={`font-pixel text-[8px] ${overdue ? "text-pixel-red" : "text-gray-500"}`}>
+              {overdue && "⚠ "}
+              {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              {" "}
+              {new Date(task.dueDate).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          <span className="font-pixel text-[8px]" style={{ color }}>{bucketName}</span>
+          <span className="font-pixel text-[8px]" style={{ color: PRIORITY_COLORS[task.priority] }}>
+            {PRIORITY_LABELS[task.priority]}
+          </span>
+          {checkTotal > 0 && (
+            <span className={`font-pixel text-[8px] ${checkDone === checkTotal ? "text-pixel-green" : "text-gray-500"}`}>
+              ✓{checkDone}/{checkTotal}
+            </span>
+          )}
+          {task.recurrence && task.recurrence !== "none" && (
+            <span className="font-pixel text-[8px] text-pixel-purple">↻</span>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function TodayView({
+  tasks,
+  buckets,
+  bucketColors,
+  onTaskClick,
+  onToggleComplete,
+}: {
+  tasks: Task[];
+  buckets: Bucket[];
+  bucketColors: Record<string, string>;
+  onTaskClick: (t: Task) => void;
+  onToggleComplete: (t: Task) => void;
+}) {
+  const bucketName = (id: string) => buckets.find((b) => b.id === id)?.name || "";
+  const now = new Date();
+  const t0 = startOfDay(now);
+  const t1 = addDays(t0, 1);
+  const t2 = addDays(t0, 2);
+  const t7 = addDays(t0, 7);
+
+  const active = tasks.filter((t) => t.progress !== "completed");
+  const withDue = active.filter((t) => t.dueDate);
+  const noDue = active.filter((t) => !t.dueDate);
+
+  const groups: { key: string; label: string; color: string; items: Task[] }[] = [
+    { key: "overdue", label: "OVERDUE", color: "#ff4444", items: [] },
+    { key: "today", label: "TODAY", color: "#00ffff", items: [] },
+    { key: "tomorrow", label: "TOMORROW", color: "#ffd700", items: [] },
+    { key: "week", label: "THIS WEEK", color: "#b967ff", items: [] },
+    { key: "later", label: "LATER", color: "#00ff41", items: [] },
+  ];
+  for (const t of withDue) {
+    const due = new Date(t.dueDate!);
+    if (due < t0) groups[0].items.push(t);
+    else if (due < t1) groups[1].items.push(t);
+    else if (due < t2) groups[2].items.push(t);
+    else if (due < t7) groups[3].items.push(t);
+    else groups[4].items.push(t);
+  }
+  groups.forEach((g) =>
+    g.items.sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+  );
+
+  const visible = groups.filter((g) => g.items.length > 0);
+  const isEmpty = visible.length === 0 && noDue.length === 0;
+
+  return (
+    <div className="max-w-2xl mx-auto flex flex-col gap-5">
+      {isEmpty && (
+        <div className="pixel-card p-8 text-center">
+          <p className="font-pixel text-xs text-gray-500 mb-2">ALL CLEAR</p>
+          <p className="font-pixel-body text-lg text-gray-400">No active tasks. Add some on the board.</p>
+        </div>
+      )}
+      {visible.map((g) => (
+        <div key={g.key}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2.5 h-2.5" style={{ background: g.color }} />
+            <h3 className="font-pixel text-[10px]" style={{ color: g.color }}>{g.label}</h3>
+            <span className="font-pixel text-[8px] text-gray-500">({g.items.length})</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {g.items.map((t) => (
+              <AgendaRow
+                key={t.id}
+                task={t}
+                color={bucketColors[t.bucketId] || "#888"}
+                bucketName={bucketName(t.bucketId)}
+                onClick={() => onTaskClick(t)}
+                onToggleComplete={() => onToggleComplete(t)}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+      {noDue.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-2.5 h-2.5 bg-gray-600" />
+            <h3 className="font-pixel text-[10px] text-gray-500">NO DUE DATE</h3>
+            <span className="font-pixel text-[8px] text-gray-500">({noDue.length})</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {noDue.map((t) => (
+              <AgendaRow
+                key={t.id}
+                task={t}
+                color={bucketColors[t.bucketId] || "#888"}
+                bucketName={bucketName(t.bucketId)}
+                onClick={() => onTaskClick(t)}
+                onToggleComplete={() => onToggleComplete(t)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Calendar view (month / week / day, chips colored by bucket) ──
+
+function CalendarChip({ task, color, onClick }: { task: Task; color: string; onClick: () => void }) {
+  const done = task.progress === "completed";
+  const time = task.dueDate
+    ? new Date(task.dueDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : "";
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      title={task.title}
+      style={{ background: color + "22", borderColor: color + "66", color }}
+      className={`w-full text-left font-pixel-body text-sm leading-tight px-1.5 py-0.5 border truncate hover:brightness-150 transition-all ${done ? "line-through opacity-60" : ""}`}
+    >
+      {time && <span className="opacity-70">{time} </span>}
+      {task.title}
+    </button>
+  );
+}
+
+function CalendarView({
+  tasks,
+  bucketColors,
+  onTaskClick,
+}: {
+  tasks: Task[];
+  bucketColors: Record<string, string>;
+  onTaskClick: (t: Task) => void;
+}) {
+  const [mode, setMode] = useState<"month" | "week" | "day">("month");
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const today = startOfDay(new Date());
+
+  const dated = useMemo(() => tasks.filter((t) => t.dueDate), [tasks]);
+  const tasksOn = (day: Date) =>
+    dated
+      .filter((t) => sameDay(new Date(t.dueDate!), day))
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+
+  const go = (dir: -1 | 1) => {
+    if (mode === "month") setAnchor((a) => new Date(a.getFullYear(), a.getMonth() + dir, 1));
+    else if (mode === "week") setAnchor((a) => addDays(a, dir * 7));
+    else setAnchor((a) => addDays(a, dir));
+  };
+
+  const title =
+    mode === "month"
+      ? anchor.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+      : mode === "week"
+        ? (() => {
+            const s = startOfWeek(anchor);
+            const e = addDays(s, 6);
+            return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${e.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+          })()
+        : anchor.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Calendar toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex">
+          <button onClick={() => go(-1)} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2 border-2 border-[#2a2a4a]">◀</button>
+          <button onClick={() => setAnchor(new Date())} className="font-pixel text-[8px] text-gray-400 hover:text-pixel-cyan px-3 border-y-2 border-[#2a2a4a]">TODAY</button>
+          <button onClick={() => go(1)} className="font-pixel-body text-lg text-gray-400 hover:text-pixel-cyan px-2 border-2 border-[#2a2a4a]">▶</button>
+        </div>
+        <span className="font-pixel text-[10px] text-pixel-cyan">{title}</span>
+        <div className="flex-1" />
+        <div className="flex">
+          {(["month", "week", "day"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`font-pixel text-[8px] px-3 py-1.5 border-2 transition-colors ${
+                mode === m ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a]" : "border-[#2a2a4a] text-gray-500 hover:text-white"
+              }`}
+            >
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* MONTH */}
+      {mode === "month" && (() => {
+        const gridStart = startOfWeek(startOfMonth(anchor));
+        const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+        return (
+          <div>
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {WEEKDAYS.map((d) => (
+                <div key={d} className="font-pixel text-[7px] text-gray-500 text-center py-1">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((day, i) => {
+                const inMonth = day.getMonth() === anchor.getMonth();
+                const isToday = sameDay(day, today);
+                const dayTasks = tasksOn(day);
+                return (
+                  <div
+                    key={i}
+                    className={`min-h-[88px] p-1 border-2 flex flex-col gap-0.5 ${
+                      isToday ? "border-pixel-cyan" : "border-[#1a1a2a]"
+                    } ${inMonth ? "bg-[#0a0a1a]/50" : "bg-[#0a0a1a]/20"}`}
+                  >
+                    <span className={`font-pixel text-[8px] ${isToday ? "text-pixel-cyan" : inMonth ? "text-gray-400" : "text-gray-700"}`}>
+                      {day.getDate()}
+                    </span>
+                    {dayTasks.slice(0, 3).map((t) => (
+                      <CalendarChip key={t.id} task={t} color={bucketColors[t.bucketId] || "#888"} onClick={() => onTaskClick(t)} />
+                    ))}
+                    {dayTasks.length > 3 && (
+                      <span className="font-pixel text-[7px] text-gray-500 px-1">+{dayTasks.length - 3} more</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* WEEK */}
+      {mode === "week" && (() => {
+        const s = startOfWeek(anchor);
+        const days = Array.from({ length: 7 }, (_, i) => addDays(s, i));
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-7 gap-1">
+            {days.map((day, i) => {
+              const isToday = sameDay(day, today);
+              const dayTasks = tasksOn(day);
+              return (
+                <div key={i} className={`min-h-[140px] p-1.5 border-2 flex flex-col gap-1 ${isToday ? "border-pixel-cyan" : "border-[#1a1a2a]"} bg-[#0a0a1a]/50`}>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-pixel text-[7px] text-gray-500">{WEEKDAYS[i]}</span>
+                    <span className={`font-pixel text-[9px] ${isToday ? "text-pixel-cyan" : "text-gray-400"}`}>{day.getDate()}</span>
+                  </div>
+                  {dayTasks.map((t) => (
+                    <CalendarChip key={t.id} task={t} color={bucketColors[t.bucketId] || "#888"} onClick={() => onTaskClick(t)} />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* DAY */}
+      {mode === "day" && (() => {
+        const dayTasks = tasksOn(anchor);
+        return (
+          <div className="max-w-xl">
+            {dayTasks.length === 0 ? (
+              <div className="pixel-card p-8 text-center">
+                <p className="font-pixel-body text-lg text-gray-400">Nothing scheduled for this day.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {dayTasks.map((t) => (
+                  <CalendarChip key={t.id} task={t} color={bucketColors[t.bucketId] || "#888"} onClick={() => onTaskClick(t)} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      <p className="font-pixel text-[7px] text-gray-600">Only tasks with a due date appear on the calendar. Colors follow each bucket.</p>
+    </div>
+  );
+}
+
 // ── Main Page ──
 
 const DEFAULT_PLAN: Plan = {
@@ -1060,9 +1441,9 @@ const DEFAULT_PLAN: Plan = {
 };
 
 const DEFAULT_BUCKETS: Bucket[] = [
-  { id: "b1", planId: "default", name: "TO DO", order: 0 },
-  { id: "b2", planId: "default", name: "IN PROGRESS", order: 1 },
-  { id: "b3", planId: "default", name: "DONE", order: 2 },
+  { id: "b1", planId: "default", name: "TO DO", order: 0, color: "#00ffff" },
+  { id: "b2", planId: "default", name: "IN PROGRESS", order: 1, color: "#ffd700" },
+  { id: "b3", planId: "default", name: "DONE", order: 2, color: "#00ff41" },
 ];
 
 export default function PlannerPage() {
@@ -1073,7 +1454,7 @@ export default function PlannerPage() {
   const [labels, setLabels] = useCloudStorage<Label[]>("ml-planner-labels", DEFAULT_LABELS);
   const [activePlanId, setActivePlanId] = useCloudStorage<string>("ml-planner-active", "default");
 
-  const [view, setView] = useState<"board" | "charts">("board");
+  const [view, setView] = useState<"board" | "today" | "calendar" | "charts">("board");
   const [mobileBucket, setMobileBucket] = useState(0);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
@@ -1102,6 +1483,7 @@ export default function PlannerPage() {
     () => tasks.filter((t) => t.planId === (plan?.id ?? "")),
     [tasks, plan]
   );
+  const bucketColors = useMemo(() => resolveBucketColors(planBuckets), [planBuckets]);
 
   const filteredTasks = useMemo(() => {
     return planTasks.filter((t) => {
@@ -1124,9 +1506,9 @@ export default function PlannerPage() {
     setPlans([...plans, { id, name: newPlanName.trim().toUpperCase(), createdAt: new Date().toISOString() }]);
     setBuckets([
       ...buckets,
-      { id: uid(), planId: id, name: "TO DO", order: 0 },
-      { id: uid(), planId: id, name: "IN PROGRESS", order: 1 },
-      { id: uid(), planId: id, name: "DONE", order: 2 },
+      { id: uid(), planId: id, name: "TO DO", order: 0, color: "#00ffff" },
+      { id: uid(), planId: id, name: "IN PROGRESS", order: 1, color: "#ffd700" },
+      { id: uid(), planId: id, name: "DONE", order: 2, color: "#00ff41" },
     ]);
     setActivePlanId(id);
     setNewPlanName("");
@@ -1150,8 +1532,12 @@ export default function PlannerPage() {
     const maxOrder = Math.max(0, ...planBuckets.map((b) => b.order));
     setBuckets([
       ...buckets,
-      { id: uid(), planId: plan.id, name: "NEW BUCKET", order: maxOrder + 1 },
+      { id: uid(), planId: plan.id, name: "NEW BUCKET", order: maxOrder + 1, color: BUCKET_PALETTE[planBuckets.length % BUCKET_PALETTE.length] },
     ]);
+  };
+
+  const setBucketColor = (id: string, color: string) => {
+    setBuckets(buckets.map((b) => (b.id === id ? { ...b, color } : b)));
   };
 
   const renameBucket = (id: string, name: string) => {
@@ -1427,17 +1813,17 @@ export default function PlannerPage() {
 
         {/* View toggle */}
         <div className="flex">
-          {(["board", "charts"] as const).map((v) => (
+          {(["board", "today", "calendar", "charts"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`font-pixel text-[8px] px-3 py-1.5 border-2 transition-colors ${
+              className={`font-pixel text-[8px] px-3 py-1.5 border-2 -ml-[2px] first:ml-0 transition-colors ${
                 view === v
-                  ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a]"
+                  ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a] relative z-10"
                   : "border-[#2a2a4a] text-gray-500 hover:text-white"
               }`}
             >
-              {v === "board" ? "BOARD" : "CHARTS"}
+              {v.toUpperCase()}
             </button>
           ))}
         </div>
@@ -1595,27 +1981,30 @@ export default function PlannerPage() {
               const showDone = expandedCompleted[bucket.id];
               return (
                 <div>
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    {editBucketId === bucket.id ? (
-                      <input
-                        autoFocus
-                        className="font-pixel text-[9px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
-                        value={editBucketName}
-                        onChange={(e) => setEditBucketName(e.target.value)}
-                        onBlur={() => renameBucket(bucket.id, editBucketName)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") renameBucket(bucket.id, editBucketName);
-                          if (e.key === "Escape") setEditBucketId(null);
-                        }}
-                      />
-                    ) : (
-                      <button
-                        onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
-                        className="font-pixel text-[9px] text-pixel-cyan hover:text-white transition-colors"
-                      >
-                        {bucket.name}
-                      </button>
-                    )}
+                  <div className="flex items-center justify-between mb-2 px-1 gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <BucketColorDot color={bucketColors[bucket.id]} onPick={(c) => setBucketColor(bucket.id, c)} />
+                      {editBucketId === bucket.id ? (
+                        <input
+                          autoFocus
+                          className="font-pixel text-[9px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
+                          value={editBucketName}
+                          onChange={(e) => setEditBucketName(e.target.value)}
+                          onBlur={() => renameBucket(bucket.id, editBucketName)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") renameBucket(bucket.id, editBucketName);
+                            if (e.key === "Escape") setEditBucketId(null);
+                          }}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
+                          className="font-pixel text-[9px] text-pixel-cyan hover:text-white transition-colors truncate"
+                        >
+                          {bucket.name}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         disabled={mobileBucket === 0}
@@ -1646,7 +2035,7 @@ export default function PlannerPage() {
                     </div>
                   </div>
                   <SortableContext items={activeTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-col gap-2 min-h-[200px] p-3 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
+                    <div className="flex flex-col gap-2 min-h-[200px] p-3 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]" style={{ borderTopColor: bucketColors[bucket.id], borderTopWidth: 3 }}>
                       {activeTasks.map((task) => (
                         <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} onToggleComplete={() => toggleComplete(task)} />
                       ))}
@@ -1698,27 +2087,30 @@ export default function PlannerPage() {
                   key={bucket.id}
                   className="flex-shrink-0 w-[320px]"
                 >
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    {editBucketId === bucket.id ? (
-                      <input
-                        autoFocus
-                        className="font-pixel text-[9px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
-                        value={editBucketName}
-                        onChange={(e) => setEditBucketName(e.target.value)}
-                        onBlur={() => renameBucket(bucket.id, editBucketName)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") renameBucket(bucket.id, editBucketName);
-                          if (e.key === "Escape") setEditBucketId(null);
-                        }}
-                      />
-                    ) : (
-                      <button
-                        onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
-                        className="font-pixel text-[9px] text-pixel-cyan hover:text-white transition-colors"
-                      >
-                        {bucket.name}
-                      </button>
-                    )}
+                  <div className="flex items-center justify-between mb-2 px-1 gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <BucketColorDot color={bucketColors[bucket.id]} onPick={(c) => setBucketColor(bucket.id, c)} />
+                      {editBucketId === bucket.id ? (
+                        <input
+                          autoFocus
+                          className="font-pixel text-[9px] text-pixel-cyan bg-transparent border-b-2 border-pixel-cyan outline-none w-full"
+                          value={editBucketName}
+                          onChange={(e) => setEditBucketName(e.target.value)}
+                          onBlur={() => renameBucket(bucket.id, editBucketName)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") renameBucket(bucket.id, editBucketName);
+                            if (e.key === "Escape") setEditBucketId(null);
+                          }}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => { setEditBucketId(bucket.id); setEditBucketName(bucket.name); }}
+                          className="font-pixel text-[9px] text-pixel-cyan hover:text-white transition-colors truncate"
+                        >
+                          {bucket.name}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <button
                         disabled={bucketIndex === 0}
@@ -1750,7 +2142,7 @@ export default function PlannerPage() {
                     </div>
                   </div>
                   <SortableContext items={activeTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-col gap-2 min-h-[100px] p-2 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]">
+                    <div className="flex flex-col gap-2 min-h-[100px] p-2 bg-[#0a0a1a]/50 border-2 border-[#1a1a2a]" style={{ borderTopColor: bucketColors[bucket.id], borderTopWidth: 3 }}>
                       {activeTasks.map((task) => (
                         <SortableTaskCard key={task.id} task={task} labels={labels} onClick={() => setEditTask(task)} onToggleComplete={() => toggleComplete(task)} />
                       ))}
@@ -1809,6 +2201,26 @@ export default function PlannerPage() {
             )}
           </DragOverlay>
         </DndContext>
+      )}
+
+      {/* Today / Upcoming agenda */}
+      {view === "today" && (
+        <TodayView
+          tasks={planTasks}
+          buckets={planBuckets}
+          bucketColors={bucketColors}
+          onTaskClick={(t) => setEditTask(t)}
+          onToggleComplete={toggleComplete}
+        />
+      )}
+
+      {/* Calendar */}
+      {view === "calendar" && (
+        <CalendarView
+          tasks={planTasks}
+          bucketColors={bucketColors}
+          onTaskClick={(t) => setEditTask(t)}
+        />
       )}
 
       {/* Charts view */}
