@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/finance", label: "Finance Log", icon: "💰" },
   { href: "/goals", label: "Mission Goals", icon: "🎯" },
   { href: "/planner", label: "Mission Planner", icon: "📋" },
+  { href: "/report", label: "Monthly Report", icon: "🗓️" },
   { href: "/trophies", label: "Trophy Case", icon: "🏆" },
 ];
 

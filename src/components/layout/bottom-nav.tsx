@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/finance", label: "Finance", icon: "💰" },
   { href: "/goals", label: "Goals", icon: "🎯" },
   { href: "/planner", label: "Planner", icon: "📋" },
+  { href: "/report", label: "Report", icon: "🗓️" },
   { href: "/trophies", label: "Trophies", icon: "🏆" },
 ];
 
@@ -23,12 +24,12 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-1.5 min-w-[70px] py-2 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-1.5 flex-1 min-w-0 py-2 transition-colors ${
                 active ? "text-pixel-cyan" : "text-gray-500"
               }`}
             >
-              <span className="text-2xl">{item.icon}</span>
-              <span className="font-pixel text-[9px] leading-none">{item.label}</span>
+              <span className="text-xl">{item.icon}</span>
+              <span className="font-pixel text-[8px] leading-none">{item.label}</span>
               {active && (
                 <div className="absolute bottom-0 h-[2px] w-10 bg-pixel-cyan" />
               )}
