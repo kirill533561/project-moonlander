@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Props {
   value: string | null;
   onChange: (iso: string | null) => void;
+  onClose: () => void;
 }
 
 const DAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
@@ -182,7 +183,7 @@ function ClockDial({
   );
 }
 
-export function DateTimePicker({ value, onChange }: Props) {
+export function DateTimePicker({ value, onChange, onClose }: Props) {
   const parsed = value ? new Date(value) : null;
   const now = new Date();
 
@@ -210,6 +211,9 @@ export function DateTimePicker({ value, onChange }: Props) {
 
   const clear = () => { onChange(null); setSelectedDate(null); setStep("date"); };
 
+  // Dismiss the picker: keep a chosen date if there is one, otherwise just close.
+  const dismiss = () => { if (selectedDate) finalize(selectedDate, hour, minute); else onClose(); };
+
   const content = (
     <div className="pixel-card p-4 w-[290px]">
       {/* Header */}
@@ -236,9 +240,19 @@ export function DateTimePicker({ value, onChange }: Props) {
             </>
           )}
         </div>
-        {value && (
-          <button onClick={clear} className="font-pixel text-[8px] text-pixel-red hover:text-red-300">CLEAR</button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {value && (
+            <button onClick={clear} className="font-pixel text-[8px] text-pixel-red hover:text-red-300">CLEAR</button>
+          )}
+          <button
+            onClick={dismiss}
+            aria-label="Close"
+            title="Close"
+            className="font-pixel-body text-xl leading-none text-gray-500 hover:text-white transition-colors"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -291,12 +305,13 @@ export function DateTimePicker({ value, onChange }: Props) {
   if (typeof document === "undefined") return content;
 
   return createPortal(
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget && selectedDate) finalize(selectedDate, hour, minute); }}>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-[#060612]/80 backdrop-blur-sm" onClick={dismiss} />
       <motion.div
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
         className="relative z-10"
+        onClick={(e) => e.stopPropagation()}
       >
         {content}
       </motion.div>

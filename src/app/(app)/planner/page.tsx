@@ -556,6 +556,7 @@ function TaskModal({
                 save({ dueDate: iso });
                 setShowDatePicker(false);
               }}
+              onClose={() => setShowDatePicker(false)}
             />
           )}
         </div>
