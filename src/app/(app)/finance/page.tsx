@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useCloudStorage } from "@/lib/use-cloud-storage";
+import { playSuccess, playLevelUp } from "@/lib/sounds";
+import { getMonthlyBadge, getBadgeGradient } from "@/lib/rewards";
 import {
   Dialog,
   DialogContent,
@@ -113,6 +115,30 @@ const TYPE_LABELS: Record<VariableType, string> = {
 
 const INPUT_CLASS =
   "bg-[#1a1a3a] border-2 border-[#2a2a4a] text-white font-pixel-body px-2 py-1.5 w-full focus:border-pixel-cyan focus:outline-none text-sm";
+
+// ─── Reporting completion ──────────────────────────────────────────────────────
+// A month's report tracks which sections the user has confirmed, plus whether the
+// whole report was marked complete. A section counts as done if it has any non-zero
+// value OR was explicitly confirmed in the wizard (so legitimate zeros still count).
+
+interface MonthProgress {
+  confirmed: string[];
+  completed: boolean;
+  completedAt?: string;
+}
+
+function sectionHasValue(monthData: MonthData, v: FinanceVariable): boolean {
+  const vals = monthData[v.id] || {};
+  return v.fields.some((f) => (vals[f] ?? 0) !== 0);
+}
+
+function isSectionDone(monthData: MonthData, v: FinanceVariable, confirmed: string[]): boolean {
+  return sectionHasValue(monthData, v) || confirmed.includes(v.id);
+}
+
+function doneSectionCount(monthData: MonthData, variables: FinanceVariable[], confirmed: string[]): number {
+  return variables.filter((v) => isSectionDone(monthData, v, confirmed)).length;
+}
 
 // ─── CSV Import Logic ────────────────────────────────────────────────────────
 
@@ -512,20 +538,35 @@ function VariableCard({
   variable,
   values,
   onChange,
+  done = false,
+  defaultExpanded = false,
 }: {
   variable: FinanceVariable;
   values: Record<string, number>;
   onChange: (field: string, value: number) => void;
+  done?: boolean;
+  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="pixel-card p-0 overflow-hidden">
+    <div
+      className="pixel-card p-0 overflow-hidden"
+      style={done ? { borderColor: "#00ff4188" } : undefined}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[#1a1a3a] transition-colors"
       >
         <div className="flex items-center gap-2">
+          <span
+            className={`w-4 h-4 shrink-0 flex items-center justify-center border-2 text-[8px] ${
+              done ? "border-pixel-green text-pixel-green" : "border-[#3a3a5a] text-transparent"
+            }`}
+            title={done ? "Filled" : "Empty"}
+          >
+            ✓
+          </span>
           <span className="font-pixel text-[9px] text-pixel-cyan">
             {expanded ? "▼" : "▶"}
           </span>
@@ -784,6 +825,329 @@ function MonthlyOverviewTable({
   );
 }
 
+// ─── Report progress bar ───────────────────────────────────────────────────────
+
+function ReportProgressBar({
+  done,
+  total,
+  completed,
+}: {
+  done: number;
+  total: number;
+  completed: boolean;
+}) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  return (
+    <div className="pixel-card p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-pixel text-[9px] text-pixel-cyan">REPORT PROGRESS</span>
+        <span className="font-pixel text-[9px] text-gray-400">
+          {done}/{total} ({pct}%){completed ? " · ✓ COMPLETE" : ""}
+        </span>
+      </div>
+      <div className="flex gap-1">
+        {total === 0 ? (
+          <div className="flex-1 h-3 border border-[#2a2a4a] bg-[#1a1a3a]" />
+        ) : (
+          Array.from({ length: total }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 h-3 border border-[#2a2a4a]"
+              style={{ background: i < done ? (completed ? "#00ff41" : "#00ffff") : "#1a1a3a" }}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Year status strip (which months are reported) ─────────────────────────────
+
+function YearStrip({
+  year,
+  yearData,
+  variables,
+  progress,
+  selectedMonth,
+  onSelect,
+}: {
+  year: number;
+  yearData: YearData;
+  variables: FinanceVariable[];
+  progress: Record<string, MonthProgress>;
+  selectedMonth: number;
+  onSelect: (m: number) => void;
+}) {
+  return (
+    <div className="pixel-card p-3">
+      <h3 className="font-pixel text-[9px] text-pixel-gold mb-3">{year} REPORTS</h3>
+      <div className="grid grid-cols-6 gap-1.5">
+        {MONTHS.map((label, i) => {
+          const md = yearData[i] || {};
+          const prog = progress[`${year}-${i}`];
+          const confirmed = prog?.confirmed || [];
+          const done = doneSectionCount(md, variables, confirmed);
+          const total = variables.length;
+          const isComplete = prog?.completed;
+          const partial = !isComplete && done > 0;
+          const isSel = i === selectedMonth;
+          return (
+            <button
+              key={i}
+              onClick={() => onSelect(i)}
+              className={`flex flex-col items-center gap-1 py-2 border-2 transition-colors ${
+                isSel ? "border-pixel-cyan bg-[#1a1a3a]" : "border-[#2a2a4a] hover:border-gray-500"
+              }`}
+            >
+              <span className="font-pixel text-[8px] text-gray-400">{label.toUpperCase()}</span>
+              <span className="text-[11px] leading-none">
+                {isComplete ? "✅" : partial ? "🟡" : "⚪"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="font-pixel-body text-xs text-gray-500 mt-2">
+        ✅ complete · 🟡 in progress · ⚪ not started
+      </p>
+    </div>
+  );
+}
+
+// ─── Guided monthly report wizard ───────────────────────────────────────────────
+
+function ReportWizard({
+  monthLabel,
+  variables,
+  monthData,
+  confirmed,
+  comment,
+  summaryNet,
+  onField,
+  onConfirmSection,
+  onComment,
+  onComplete,
+  onExit,
+}: {
+  monthLabel: string;
+  variables: FinanceVariable[];
+  monthData: MonthData;
+  confirmed: string[];
+  comment: string;
+  summaryNet: number;
+  onField: (variableId: string, field: string, value: number) => void;
+  onConfirmSection: (variableId: string) => void;
+  onComment: (c: string) => void;
+  onComplete: () => void;
+  onExit: () => void;
+}) {
+  const total = variables.length;
+  const [step, setStep] = useState(0);
+  const onReview = step >= total;
+  const current = variables[step];
+
+  const goNext = () => setStep((s) => Math.min(total, s + 1));
+  const goBack = () => setStep((s) => Math.max(0, s - 1));
+
+  return (
+    <div className="space-y-4">
+      {/* Wizard header */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-pixel text-[10px] text-pixel-cyan">
+          {monthLabel} REPORT
+        </h3>
+        <button
+          onClick={onExit}
+          className="font-pixel text-[8px] text-gray-400 hover:text-white border-2 border-[#2a2a4a] hover:border-gray-500 px-2 py-1 transition-colors"
+        >
+          EXIT TO EDIT
+        </button>
+      </div>
+
+      {/* Step progress */}
+      <div className="pixel-card p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-pixel text-[9px] text-pixel-cyan">
+            {onReview ? "REVIEW" : `STEP ${step + 1} / ${total}`}
+          </span>
+          <span className="font-pixel text-[9px] text-gray-400">
+            {doneSectionCount(monthData, variables, confirmed)}/{total} filled
+          </span>
+        </div>
+        <div className="flex gap-1">
+          {Array.from({ length: total }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 h-2.5 border border-[#2a2a4a]"
+              style={{ background: i < step || onReview ? "#00ffff" : i === step ? "#00ffff55" : "#1a1a3a" }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Section step */}
+      {!onReview && current && (
+        <div className="pixel-card p-4 space-y-3">
+          <div>
+            <p className="font-pixel text-[10px] text-white">{current.name}</p>
+            <p className="font-pixel-body text-sm text-gray-500 mt-1">
+              {TYPE_LABELS[current.type]} — enter the {monthLabel} values, then confirm.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {current.fields.map((field) => {
+              const val = (monthData[current.id] || {})[field] ?? 0;
+              return (
+                <div key={field} className="space-y-1">
+                  <label className="font-pixel-body text-xs text-gray-400 uppercase tracking-wide block">
+                    {formatLabel(field)}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="font-pixel-body text-sm text-gray-500">€</span>
+                    <input
+                      type="number"
+                      value={val}
+                      onChange={(e) => onField(current.id, field, parseFloat(e.target.value) || 0)}
+                      className={`${INPUT_CLASS} font-pixel-body text-sm`}
+                    />
+                    <span
+                      className={`font-pixel-body text-sm shrink-0 min-w-[70px] text-right ${
+                        val >= 0 ? "text-pixel-green" : "text-pixel-red"
+                      }`}
+                    >
+                      {formatCurrency(val)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <button
+              onClick={goBack}
+              disabled={step === 0}
+              className="font-pixel text-[8px] text-gray-400 hover:text-white border-2 border-[#2a2a4a] hover:border-gray-500 disabled:opacity-30 px-3 py-2 transition-colors"
+            >
+              ◀ BACK
+            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={goNext}
+                className="font-pixel text-[8px] text-gray-500 hover:text-white px-3 py-2 transition-colors"
+              >
+                SKIP
+              </button>
+              <button
+                onClick={() => { onConfirmSection(current.id); goNext(); }}
+                className="pixel-btn pixel-btn-green font-pixel text-[8px] px-4 py-2"
+              >
+                CONFIRM ▶
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review step */}
+      {onReview && (
+        <div className="pixel-card p-4 space-y-3">
+          <p className="font-pixel text-[10px] text-pixel-gold">REVIEW & COMPLETE</p>
+          <div className="space-y-1">
+            {variables.map((v) => {
+              const sectionDone = isSectionDone(monthData, v, confirmed);
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setStep(variables.indexOf(v))}
+                  className="w-full flex items-center justify-between py-1.5 border-b border-[#2a2a4a]/50 text-left"
+                >
+                  <span className="font-pixel-body text-base text-white">{v.name}</span>
+                  <span className={`font-pixel text-[8px] ${sectionDone ? "text-pixel-green" : "text-gray-600"}`}>
+                    {sectionDone ? "✓ DONE" : "○ EMPTY"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <span className="font-pixel-body text-sm text-gray-400">Net income</span>
+            <span className={`font-pixel text-[10px] ${summaryNet >= 0 ? "text-pixel-green" : "text-pixel-red"}`}>
+              {formatCurrency(summaryNet)}
+            </span>
+          </div>
+          <div>
+            <label className="font-pixel-body text-xs text-gray-400 block mb-1">Comments</label>
+            <textarea
+              value={comment}
+              onChange={(e) => onComment(e.target.value)}
+              rows={2}
+              placeholder="Notes for this month..."
+              className={`${INPUT_CLASS} resize-none`}
+            />
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <button
+              onClick={goBack}
+              className="font-pixel text-[8px] text-gray-400 hover:text-white border-2 border-[#2a2a4a] hover:border-gray-500 px-3 py-2 transition-colors"
+            >
+              ◀ BACK
+            </button>
+            <button
+              onClick={onComplete}
+              className="pixel-btn pixel-btn-gold font-pixel text-[8px] px-4 py-2"
+            >
+              ✓ COMPLETE {monthLabel} REPORT
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Completion celebration ─────────────────────────────────────────────────────
+
+function ReportCelebration({
+  monthLabel,
+  pct,
+  net,
+  onClose,
+}: {
+  monthLabel: string;
+  pct: number;
+  net: number;
+  onClose: () => void;
+}) {
+  const badge = getMonthlyBadge(pct / 100);
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-[#060612]/85 backdrop-blur-sm" />
+      <div className="relative z-10 w-full max-w-sm pixel-card p-6 text-center" onClick={(e) => e.stopPropagation()}>
+        <p className="font-pixel text-[10px] text-pixel-green mb-4">REPORT COMPLETE</p>
+        <div
+          className={`w-24 h-24 mx-auto flex items-center justify-center bg-gradient-to-br ${getBadgeGradient(badge.level)} animate-glow`}
+          style={{ borderRadius: "4px" }}
+        >
+          <span className="text-5xl">{badge.emoji}</span>
+        </div>
+        <p className="font-pixel text-[10px] text-pixel-gold mt-4">{badge.name.toUpperCase()}</p>
+        <p className="font-pixel-body text-lg text-white mt-2">{monthLabel} logged</p>
+        <p className="font-pixel-body text-base text-gray-400 mt-1">
+          {pct}% complete · net{" "}
+          <span className={net >= 0 ? "text-pixel-green" : "text-pixel-red"}>{formatCurrency(net)}</span>
+        </p>
+        <button
+          onClick={onClose}
+          className="pixel-btn pixel-btn-green font-pixel text-[8px] px-5 py-2 mt-5"
+        >
+          NICE
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FinancePage() {
@@ -792,9 +1156,47 @@ export default function FinancePage() {
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(0);
   const [comments, setComments] = useCloudStorage<Record<string, string>>("ml-finance-comments", {});
+  const [progress, setProgress] = useCloudStorage<Record<string, MonthProgress>>("ml-finance-progress", {});
+  const [mode, setMode] = useState<"edit" | "report">("edit");
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const commentKey = `${selectedYear}-${selectedMonth}`;
   const currentMonthData = allData[selectedYear]?.[selectedMonth] || {};
+  const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`;
+  const monthProg: MonthProgress = progress[commentKey] || { confirmed: [], completed: false };
+
+  const doneCount = doneSectionCount(currentMonthData, variables, monthProg.confirmed);
+  const monthPct = variables.length ? Math.round((doneCount / variables.length) * 100) : 0;
+
+  const monthNet = useMemo(() => {
+    let inc = 0;
+    let exp = 0;
+    for (const v of variables) {
+      const vals = currentMonthData[v.id] || {};
+      if (v.type === "income_source") inc += vals.amount ?? 0;
+      else if (v.type === "expense_category") exp += vals.amount ?? 0;
+    }
+    return inc - exp;
+  }, [variables, currentMonthData]);
+
+  function confirmSection(variableId: string) {
+    setProgress((prev) => {
+      const cur = prev[commentKey] || { confirmed: [], completed: false };
+      if (cur.confirmed.includes(variableId)) return prev;
+      return { ...prev, [commentKey]: { ...cur, confirmed: [...cur.confirmed, variableId] } };
+    });
+  }
+
+  function completeReport() {
+    setProgress((prev) => {
+      const cur = prev[commentKey] || { confirmed: [], completed: false };
+      return { ...prev, [commentKey]: { ...cur, completed: true, completedAt: new Date().toISOString() } };
+    });
+    playSuccess();
+    setTimeout(() => playLevelUp(), 280);
+    setShowCelebration(true);
+    setMode("edit");
+  }
 
   function handleFieldChange(variableId: string, field: string, value: number) {
     setAllData((prev) => {
@@ -859,103 +1261,146 @@ export default function FinancePage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
-      {/* Page title */}
-      <h2 className="font-pixel text-xs text-pixel-cyan mb-4">FINANCE LOG</h2>
+      {/* Page title + mode toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-pixel text-xs text-pixel-cyan">FINANCE LOG</h2>
+        <div className="flex">
+          {(["edit", "report"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`font-pixel text-[8px] px-3 py-1.5 border-2 -ml-[2px] first:ml-0 transition-colors ${
+                mode === m
+                  ? "border-pixel-cyan text-pixel-cyan bg-[#1a1a3a] relative z-10"
+                  : "border-[#2a2a4a] text-gray-500 hover:text-white"
+              }`}
+            >
+              {m === "edit" ? "EDIT" : "MONTHLY REPORT"}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {/* Top controls: year/month selector + configure button */}
+      {/* Year / month selector */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex gap-2 flex-1">
-          {/* Year selector */}
           <div className="flex-1 sm:flex-none">
-            <label className="font-pixel-body text-xs text-gray-400 block mb-1">
-              Year
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className={INPUT_CLASS}
-            >
-              {YEARS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
+            <label className="font-pixel-body text-xs text-gray-400 block mb-1">Year</label>
+            <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className={INPUT_CLASS}>
+              {YEARS.map((y) => (<option key={y} value={y}>{y}</option>))}
             </select>
           </div>
-
-          {/* Month selector */}
           <div className="flex-1 sm:flex-none">
-            <label className="font-pixel-body text-xs text-gray-400 block mb-1">
-              Month
-            </label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className={INPUT_CLASS}
-            >
-              {MONTHS.map((m, i) => (
-                <option key={i} value={i}>
-                  {m}
-                </option>
-              ))}
+            <label className="font-pixel-body text-xs text-gray-400 block mb-1">Month</label>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))} className={INPUT_CLASS}>
+              {MONTHS.map((m, i) => (<option key={i} value={i}>{m}</option>))}
             </select>
           </div>
         </div>
-
         <div className="flex gap-2">
           <ImportCSVDialog onImport={handleCSVImport} />
           <ConfigureDialog variables={variables} onSave={handleSaveVariables} />
         </div>
       </div>
 
-      {/* Current selection label */}
-      <p className="font-pixel-body text-sm text-gray-500">
-        Editing:{" "}
-        <span className="text-pixel-cyan">
-          {MONTHS[selectedMonth]} {selectedYear}
-        </span>
-      </p>
+      {variables.length === 0 ? (
+        <div className="pixel-card p-8 text-center">
+          <p className="font-pixel text-[10px] text-gray-500 mb-2">NO VARIABLES YET</p>
+          <p className="font-pixel-body text-lg text-gray-400">
+            Import a bank CSV or use Configure Variables to set up what you track each month.
+          </p>
+        </div>
+      ) : mode === "report" ? (
+        <ReportWizard
+          monthLabel={monthLabel}
+          variables={variables}
+          monthData={currentMonthData}
+          confirmed={monthProg.confirmed}
+          comment={comments[commentKey] || ""}
+          summaryNet={monthNet}
+          onField={handleFieldChange}
+          onConfirmSection={confirmSection}
+          onComment={(c) => setComments((prev) => ({ ...prev, [commentKey]: c }))}
+          onComplete={completeReport}
+          onExit={() => setMode("edit")}
+        />
+      ) : (
+        <>
+          {/* Report progress for the selected month */}
+          <ReportProgressBar done={doneCount} total={variables.length} completed={monthProg.completed} />
 
-      {/* Finance Variable Cards */}
-      <div className="space-y-2">
-        {variables.map((v) => (
-          <VariableCard
-            key={v.id}
-            variable={v}
-            values={currentMonthData[v.id] || {}}
-            onChange={(field, value) => handleFieldChange(v.id, field, value)}
+          {/* Start / continue guided report */}
+          <button
+            onClick={() => setMode("report")}
+            className="pixel-btn pixel-btn-gold w-full py-2.5 font-pixel text-[9px]"
+          >
+            {monthProg.completed
+              ? `↻ REVISIT ${monthLabel} REPORT`
+              : doneCount > 0
+                ? `▶ CONTINUE ${monthLabel} REPORT (${doneCount}/${variables.length})`
+                : `🚀 START GUIDED ${monthLabel} REPORT`}
+          </button>
+
+          <p className="font-pixel-body text-sm text-gray-500">
+            Editing: <span className="text-pixel-cyan">{monthLabel}</span>
+            {monthProg.completed && <span className="text-pixel-green"> · ✓ reported</span>}
+          </p>
+
+          {/* Finance Variable Cards — empty ones open so you can see what to fill */}
+          <div className="space-y-2">
+            {variables.map((v) => {
+              const sectionDone = isSectionDone(currentMonthData, v, monthProg.confirmed);
+              return (
+                <VariableCard
+                  key={v.id}
+                  variable={v}
+                  values={currentMonthData[v.id] || {}}
+                  onChange={(field, value) => handleFieldChange(v.id, field, value)}
+                  done={sectionDone}
+                  defaultExpanded={!sectionDone}
+                />
+              );
+            })}
+          </div>
+
+          {/* Summary Section */}
+          <SummarySection
+            variables={variables}
+            monthData={currentMonthData}
+            comment={comments[commentKey] || ""}
+            onCommentChange={(c) => setComments((prev) => ({ ...prev, [commentKey]: c }))}
           />
-        ))}
-      </div>
 
-      {/* Summary Section */}
-      <SummarySection
-        variables={variables}
-        monthData={currentMonthData}
-        comment={comments[commentKey] || ""}
-        onCommentChange={(c) =>
-          setComments((prev) => ({ ...prev, [commentKey]: c }))
-        }
-      />
+          {/* Year report status */}
+          <YearStrip
+            year={selectedYear}
+            yearData={allData[selectedYear] || {}}
+            variables={variables}
+            progress={progress}
+            selectedMonth={selectedMonth}
+            onSelect={setSelectedMonth}
+          />
 
-      {/* Monthly Overview Table */}
-      <MonthlyOverviewTable
-        year={selectedYear}
-        yearData={allData[selectedYear] || {}}
-        variables={variables}
-        selectedMonth={selectedMonth}
-        onSelectMonth={setSelectedMonth}
-      />
+          {/* Monthly Overview Table */}
+          <MonthlyOverviewTable
+            year={selectedYear}
+            yearData={allData[selectedYear] || {}}
+            variables={variables}
+            selectedMonth={selectedMonth}
+            onSelectMonth={setSelectedMonth}
+          />
+          <div className="pb-4" />
+        </>
+      )}
 
-      {/* Save button (visual only for MVP) */}
-      <div className="flex justify-end pb-4">
-        <button
-          onClick={() => alert("Saved! (mock)")}
-          className="pixel-btn pixel-btn-green px-6 py-2 text-sm"
-        >
-          Save Month
-        </button>
-      </div>
+      {showCelebration && (
+        <ReportCelebration
+          monthLabel={monthLabel}
+          pct={monthPct}
+          net={monthNet}
+          onClose={() => setShowCelebration(false)}
+        />
+      )}
     </div>
   );
 }
